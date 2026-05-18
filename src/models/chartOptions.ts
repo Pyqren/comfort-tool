@@ -19,7 +19,6 @@ export const ChartId = {
   HeatIndexDynamic: "heatIndexDynamic", // Heat index dynamic chart
   Humidex: "humidex", // Humidex chart
   HumidexDynamic: "humidexDynamic", // Humidex dynamic chart
-  WindChill: "windChill", // Wind chill chart
   WindChillDynamic: "windChillDynamic", // Wind chill dynamic chart
 } as const;
 
@@ -52,7 +51,7 @@ export const chartMetaById: Record<ChartId, ChartMetadata> = {
     heightClass: "h-[480px] xl:h-[480px]",
   },
   [ChartId.Stress]: {
-    name: "Psychrometric",
+    name: "UTCI",
     emptyMessage: "No psychrometric chart yet.",
     heightClass: "h-[480px] xl:h-[480px]",
   },
@@ -107,11 +106,6 @@ export const chartMetaById: Record<ChartId, ChartMetadata> = {
     heightClass: "h-[480px] xl:h-[480px]",
     isDynamic: true,
     lockYAxis: true,
-  },
-  [ChartId.WindChill]: {
-    name: "Psychrometric",
-    emptyMessage: "No psychrometric chart yet.",
-    heightClass: "h-[480px] xl:h-[480px]",
   },
   [ChartId.WindChillDynamic]: {
     name: "Dynamic",

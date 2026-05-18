@@ -5,23 +5,35 @@
 
 import { heat_index } from "jsthermalcomfort";
 import { CalculationSource } from "../models/calculationMetadata";
-import { ComfortModel } from "../models/comfortModels";
+import { ComfortModel, comfortModelMetaById } from "../models/comfortModels";
 import { ChartId } from "../models/chartOptions";
 import { FieldKey } from "../models/fieldKeys";
 import { fieldMetaByKey } from "../models/inputFieldsMeta";
 import { InputControlId } from "../models/inputControls";
 import { ThermalZone } from "../models/thermalZone";
-import type { UnitSystem } from "../models/units";
+import { UnitSystem } from "../models/units";
 import type { InputId as InputIdType } from "../models/inputSlots";
 import type { CompareInputMap, PlotlyChartResponseDto } from "../models/comfortDtos";
 import { createControlBehavior } from "../services/comfort/controls/controlBehaviors";
-import { ensureFiniteValue, getHeatIndexCategory, heatIndexZones, HI_CAUTION, HI_EXTREME_CAUTION, HI_DANGER, HI_EXTREME_DANGER } from "../services/comfort/helpers";
+import { ensureFiniteValue, roundValue } from "../services/comfort/helpers";
 import { convertFieldValueToSi, convertFieldValueFromSi, formatDisplayValue } from "../services/units/index";
 import { ComfortModelBuilder, isRecord, createEmptyResults, buildResultSection } from "../state/comfortTool/modelConfigs/builder";
-import { buildGenericHeatmapRangeChart, buildGenericDynamicHeatmapChart } from "../services/comfort/charts/sharedCharts";
-import { roundValue } from "../services/comfort/helpers";
+import { buildComfortModelChart } from "../services/comfort/charts/sharedCharts";
 
-// DTOs for the Heat Index model
+// ── Thermal Zones Definition ─────────────────────────────────────────────────
+export const heatIndexZonesList = [
+  new ThermalZone({ label: "Safe", max: 27, color: "#e2e8f0", textColor: "#475569" }),
+  new ThermalZone({ label: "Caution", min: 27, max: 32, color: "#fef08a", textColor: "#854d0e" }),
+  new ThermalZone({ label: "Extreme Caution", min: 32, max: 39, color: "#fde047", textColor: "#a16207" }),
+  new ThermalZone({ label: "Danger", min: 39, max: 51, color: "#f97316", textColor: "#ea580c" }),
+  new ThermalZone({ label: "Extreme Danger", min: 51, color: "#dc2626", textColor: "#b91c1c" }),
+];
+// ── Constants ────────────────────────────────────────────────────────
+// Min temperature is set to 20 °C rather than the 26.7 °C (80 °F) Rothfusz caution threshold 
+// because jsthermalcomfort utilizes the simpler Steadman formula below 80 °F to supply safe, valid baseline results down to 20 °C.
+const TDB_LIMITS = { min: 20, max: 50 };
+
+// ── Data Transfer Object (DTOs) ────────────────────────────────────────────────────────
 export interface HeatIndexRequestDto {
   tdb: number;
   rh: number;
@@ -34,14 +46,11 @@ export interface HeatIndexResponseDto {
   source: CalculationSource;
 }
 
-export interface HeatIndexChartInputsRequestDto {
-  inputs: CompareInputMap<HeatIndexRequestDto>;
-}
-
 export interface HeatIndexChartSourceDto {
-  chartRequest: HeatIndexChartInputsRequestDto;
+  chartRequest: CompareInputMap<HeatIndexRequestDto>;
   dynamicXAxis?: FieldKey;
   dynamicYAxis?: FieldKey;
+  baselineInputId?: InputIdType;
 }
 
 /**
@@ -59,7 +68,9 @@ export function calculateHeatIndex(payload: HeatIndexRequestDto): HeatIndexRespo
   const tdbSi = convertFieldValueToSi(FieldKey.DryBulbTemperature, payload.tdb, payload.units);
   // If the raw Heat Index is NaN, use the dry bulb temperature
   const hiSi = isNaN(rawHiSi) ? tdbSi : rawHiSi;
-  const category = getHeatIndexCategory(hiSi);
+
+  const zone = heatIndexZonesList.find((z) => z.contains(hiSi));
+  const category = zone ? zone.label : heatIndexZonesList[0].label;
 
   return {
     hi: hiSi,
@@ -76,38 +87,21 @@ function toHeatIndexRequest(state: any, inputId: InputIdType): HeatIndexRequestD
   return {
     tdb: Number(inputs[FieldKey.DryBulbTemperature]),
     rh: Number(inputs[FieldKey.RelativeHumidity]),
-    units: "SI" as const,
+    units: UnitSystem.SI,
   };
 }
 
-/**
- * Normalizes external model options safely by returning an empty object if the input is a record, otherwise returns default if not a record.
- */
-function normalizeOptions(value: unknown) {
-  return isRecord(value) ? value : {};
-}
-
-// ── Thermal Zones Definition ─────────────────────────────────────────────────
-
-const heatIndexZonesList = [
-  new ThermalZone({ label: "Safe", max: 27, color: "#e2e8f0" }),
-  new ThermalZone({ label: "Caution", min: 27, max: 32, color: "#fef08a" }),
-  new ThermalZone({ label: "Extreme Caution", min: 32, max: 39, color: "#fde047" }),
-  new ThermalZone({ label: "Danger", min: 39, max: 51, color: "#f97316" }),
-  new ThermalZone({ label: "Extreme Danger", min: 51, color: "#dc2626" }),
-];
 
 // ── Model Configuration Builder ──────────────────────────────────────────────
 
 const heatIndexBuilder = new ComfortModelBuilder<HeatIndexResponseDto, HeatIndexChartSourceDto>(ComfortModel.HeatIndex);
 
-
 /**
 * Registers dropdown metadata for the Heat Index model.
 */
 heatIndexBuilder
-  .setLabel("Heat Index")
-  .setDescription("Combines air temperature and relative humidity to determine the human-perceived equivalent temperature.");
+  .setLabel(comfortModelMetaById[ComfortModel.HeatIndex].label)
+  .setDescription(comfortModelMetaById[ComfortModel.HeatIndex].description);
 
 /**
 * Registers UI controls for the Heat Index model.
@@ -118,8 +112,8 @@ heatIndexBuilder.addControl({
     controlId: InputControlId.Temperature,
     fieldKey: FieldKey.DryBulbTemperature,
     // The Rothfusz regression for Heat Index is typically valid for temperatures above 26.7 °C (80 °F).
-    minValue: 20,
-    maxValue: 50,
+    minValue: TDB_LIMITS.min,
+    maxValue: TDB_LIMITS.max,
   }),
 });
 
@@ -130,6 +124,8 @@ heatIndexBuilder.addControl({
     fieldKey: FieldKey.RelativeHumidity,
   }),
 });
+
+
 
 /**
  * Registers the calculation logic for the Heat Index model.
@@ -147,9 +143,10 @@ heatIndexBuilder.setCalculator((state, visibleInputIds) => {
   return {
     resultsByInput,
     chartSource: {
-      chartRequest: { inputs: chartInputs },
+      chartRequest: chartInputs,
       dynamicXAxis: state.ui.dynamicXAxis,
       dynamicYAxis: state.ui.dynamicYAxis,
+      baselineInputId: state.ui.chartBaselineInputId,
     },
   };
 });
@@ -157,20 +154,17 @@ heatIndexBuilder.setCalculator((state, visibleInputIds) => {
 heatIndexBuilder.setResultBuilder((results, visibleInputIds, unitSystem) => {
   const temperatureUnits = fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem];
   return [
-    buildResultSection("Heat Index", results, visibleInputIds, (result) => {
+    buildResultSection(comfortModelMetaById[ComfortModel.HeatIndex].label, results, visibleInputIds, (result) => {
       const displayValue = convertFieldValueFromSi(FieldKey.DryBulbTemperature, result.hi, unitSystem);
       const formattedValue = formatDisplayValue(displayValue, fieldMetaByKey[FieldKey.DryBulbTemperature].decimals);
 
-      let tone: any = "default";
-      if (result.category === "Extreme Danger") tone = "hiExtremeDanger";
-      else if (result.category === "Danger") tone = "hiDanger";
-      else if (result.category === "Extreme Caution") tone = "hiExtremeCaution";
-      else if (result.category === "Caution") tone = "hiCaution";
+      const zone = heatIndexZonesList.find((z) => z.contains(result.hi));
+      const color = zone ? zone.textColor : "";
 
       return {
         text: `${formattedValue} ${temperatureUnits}`,
         subtext: result.category,
-        tone,
+        color,
       };
     }),
   ];
@@ -180,82 +174,51 @@ heatIndexBuilder.setResultBuilder((results, visibleInputIds, unitSystem) => {
  * Registers the chart building logic for the Heat Index model.
  */
 heatIndexBuilder.setChartBuilder((chartId, chartSource, resultsByInput, unitSystem) => {
-  if (!chartSource) return null;
-  // Safely cast chartRequest to the shared structure expected by the underlying Plotly renderer
-  const sharedChartRequest = chartSource.chartRequest as any;
+  return buildComfortModelChart(chartId, chartSource, resultsByInput, unitSystem, {
+    dynamicChartId: ChartId.HeatIndexDynamic,
+    dynamicTitle: `${comfortModelMetaById[ComfortModel.HeatIndex].label} Dynamic Chart`,
+    zones: heatIndexZonesList,
+    customRanges: {
+      [FieldKey.DryBulbTemperature]: TDB_LIMITS,
+    },
+    baselinePayloadDefault: {
+      tdb: fieldMetaByKey[FieldKey.DryBulbTemperature].defaultValue,
+      rh: fieldMetaByKey[FieldKey.RelativeHumidity].defaultValue,
+    },
+    calculateDynamicPoint: (xSi, ySi, dynamicXAxis, dynamicYAxis, baselinePayload) => {
+      const calcPayload: any = { ...baselinePayload, units: UnitSystem.SI };
+      calcPayload[dynamicXAxis] = xSi;
+      calcPayload[dynamicYAxis] = ySi;
 
-  // Dynamic heat map chart builder
-  if (chartId === ChartId.HeatIndexDynamic) {
-    return buildGenericDynamicHeatmapChart(
-      sharedChartRequest,
-      resultsByInput,
-      unitSystem,
-      chartSource.dynamicXAxis as FieldKey,
-      chartSource.dynamicYAxis as FieldKey,
-      {
-        title: "Heat Index Dynamic Chart",
-        zMax: 4,
-        colorscale: [
-          [0, heatIndexZones[0].color], [0.2, heatIndexZones[0].color],
-          [0.2, heatIndexZones[1].color], [0.4, heatIndexZones[1].color],
-          [0.4, heatIndexZones[2].color], [0.6, heatIndexZones[2].color],
-          [0.6, heatIndexZones[3].color], [0.8, heatIndexZones[3].color],
-          [0.8, heatIndexZones[4].color], [1, heatIndexZones[4].color]
-        ],
-        getRange: (key: FieldKey) => {
-          if (key === FieldKey.DryBulbTemperature) return { min: 20, max: 50 };
-          if (key === FieldKey.RelativeHumidity) return { min: 0, max: 100 };
-          return { min: 0, max: 100 };
-        },
-        calculatePoint: (xSi, ySi, dynamicXAxis, dynamicYAxis) => {
-          const calcPayload: any = { units: "SI", tdb: 25, rh: 50 };
-          if (dynamicXAxis === FieldKey.DryBulbTemperature) calcPayload.tdb = xSi;
-          if (dynamicYAxis === FieldKey.DryBulbTemperature) calcPayload.tdb = ySi;
-          if (dynamicXAxis === FieldKey.RelativeHumidity) calcPayload.rh = xSi;
-          if (dynamicYAxis === FieldKey.RelativeHumidity) calcPayload.rh = ySi;
-
-          const res = heat_index(calcPayload.tdb, calcPayload.rh, { round: true, units: "SI" });
-          const hi = res.hi;
-          let rangeValue = 0;
-          if (hi >= HI_EXTREME_DANGER) rangeValue = 4;
-          else if (hi >= HI_DANGER) rangeValue = 3;
-          else if (hi >= HI_EXTREME_CAUTION) rangeValue = 2;
-          else if (hi >= HI_CAUTION) rangeValue = 1;
-          
-          return { rangeValue, category: getHeatIndexCategory(hi) };
-        },
-        getHovertemplateScatter: (label, cached) => `${label}<br>${fieldMetaByKey[chartSource.dynamicXAxis as FieldKey]?.label}: %{x:.1f}<br>${fieldMetaByKey[chartSource.dynamicYAxis as FieldKey]?.label}: %{y:.1f}<br><b>Category: ${cached?.category || ""}</b><br>Heat Index: ${roundValue(convertFieldValueFromSi(FieldKey.DryBulbTemperature, cached?.hi, unitSystem), 1)}${fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem]}<extra></extra>`
+      const res = heat_index(calcPayload.tdb, calcPayload.rh, { round: true, units: UnitSystem.SI });
+      const hi = res.hi;
+      
+      const zone = heatIndexZonesList.find((z) => z.contains(hi));
+      const rangeValue = zone ? heatIndexZonesList.indexOf(zone) : 0;
+      
+      return { rangeValue, category: zone ? zone.label : heatIndexZonesList[0].label };
+    },
+    getHovertemplateScatterDynamic: (label, cached) => `${label}<br>${fieldMetaByKey[chartSource.dynamicXAxis as FieldKey]?.label}: %{x:.1f}<br>${fieldMetaByKey[chartSource.dynamicYAxis as FieldKey]?.label}: %{y:.1f}<br><b>Category: ${cached?.category || ""}</b><br>Heat Index: ${roundValue(convertFieldValueFromSi(FieldKey.DryBulbTemperature, cached?.hi, unitSystem), 1)}${fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem]}<extra></extra>`,
+    staticConfig: {
+      title: `${comfortModelMetaById[ComfortModel.HeatIndex].label} Ranges`,
+      xKey: FieldKey.RelativeHumidity,
+      yKey: FieldKey.DryBulbTemperature,
+      xRangeSi: {
+        min: fieldMetaByKey[FieldKey.RelativeHumidity].minValue,
+        max: fieldMetaByKey[FieldKey.RelativeHumidity].maxValue,
+      },
+      yRangeSi: TDB_LIMITS,
+      hovertemplateContour: `${fieldMetaByKey[FieldKey.RelativeHumidity].label}: %{x:.1f}%<br>${fieldMetaByKey[FieldKey.DryBulbTemperature].label}: %{y:.1f}${fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem]}<br><b>Category: %{text}</b><extra></extra>`,
+      getHovertemplateScatter: (label, cached) => `${label}<br>${fieldMetaByKey[FieldKey.RelativeHumidity].label}: %{x:.1f}%<br>${fieldMetaByKey[FieldKey.DryBulbTemperature].label}: %{y:.1f}${fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem]}<br><b>Category: ${cached?.category || ""}</b><br>Heat Index: ${roundValue(convertFieldValueFromSi(FieldKey.DryBulbTemperature, cached?.hi, unitSystem), 1)}${fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem]}<extra></extra>`,
+      getScatterXSi: (p) => p.rh,
+      getScatterYSi: (p) => p.tdb,
+      calculateStaticPoint: (xSi, ySi) => {
+        const result = heat_index(ySi, xSi, { round: true, units: UnitSystem.SI });
+        const hi = result.hi;
+        const zone = heatIndexZonesList.find((z) => z.contains(hi));
+        const rangeValue = zone ? heatIndexZonesList.indexOf(zone) : 0;
+        return { rangeValue, category: zone ? zone.label : heatIndexZonesList[0].label };
       }
-    );
-  }
-
-  return buildGenericHeatmapRangeChart(sharedChartRequest, resultsByInput, unitSystem, {
-    title: "Heat Index Ranges",
-    xKey: FieldKey.RelativeHumidity,
-    yKey: FieldKey.DryBulbTemperature,
-    xRangeSi: { min: 0, max: 100 },
-    yRangeSi: { min: 20, max: 50 },
-    zMax: 4,
-    colorscale: [
-      [0, heatIndexZones[0].color], [0.2, heatIndexZones[0].color],
-      [0.2, heatIndexZones[1].color], [0.4, heatIndexZones[1].color],
-      [0.4, heatIndexZones[2].color], [0.6, heatIndexZones[2].color],
-      [0.6, heatIndexZones[3].color], [0.8, heatIndexZones[3].color],
-      [0.8, heatIndexZones[4].color], [1, heatIndexZones[4].color]
-    ],
-    hovertemplateContour: `${fieldMetaByKey[FieldKey.RelativeHumidity].label}: %{x:.1f}%<br>${fieldMetaByKey[FieldKey.DryBulbTemperature].label}: %{y:.1f}${fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem]}<br><b>Category: %{text}</b><extra></extra>`,
-    getHovertemplateScatter: (label, cached) => `${label}<br>${fieldMetaByKey[FieldKey.RelativeHumidity].label}: %{x:.1f}%<br>${fieldMetaByKey[FieldKey.DryBulbTemperature].label}: %{y:.1f}${fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem]}<br><b>Category: ${cached?.category || ""}</b><br>Heat Index: ${roundValue(convertFieldValueFromSi(FieldKey.DryBulbTemperature, cached?.hi, unitSystem), 1)}${fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem]}<extra></extra>`,
-    getScatterXSi: (p) => p.rh,
-    getScatterYSi: (p) => p.tdb,
-    calculatePoint: (xSi, ySi) => {
-      const result = heat_index(ySi, xSi, { round: true, units: "SI" });
-      const hi = result.hi;
-      let rangeValue = 0;
-      if (hi >= HI_EXTREME_DANGER) rangeValue = 4;
-      else if (hi >= HI_DANGER) rangeValue = 3;
-      else if (hi >= HI_EXTREME_CAUTION) rangeValue = 2;
-      else if (hi >= HI_CAUTION) rangeValue = 1;
-      return { rangeValue, category: getHeatIndexCategory(hi) };
     }
   });
 });
@@ -266,19 +229,8 @@ heatIndexBuilder.setChartBuilder((chartId, chartSource, resultsByInput, unitSyst
 heatIndexBuilder.setDefaultChart(ChartId.HeatIndexRanges, [ChartId.HeatIndexRanges, ChartId.HeatIndexDynamic]);
 heatIndexBuilder.setDynamicAxisFields([FieldKey.DryBulbTemperature, FieldKey.RelativeHumidity]);
 heatIndexBuilder.setDefaultOptions({});
-heatIndexBuilder.setOptionNormalizer(normalizeOptions);
+heatIndexBuilder.setOptionNormalizer((value) => isRecord(value) ? value : {});
 heatIndexBuilder.setZones(heatIndexZonesList);
-
-/**
- * Registers color tones for the Heat Index model.
- */
-heatIndexBuilder.setToneToClass({
-  hiNoticeable: "text-yellow-400",
-  hiCaution: "text-yellow-500",
-  hiExtremeCaution: "text-yellow-600",
-  hiDanger: "text-orange-500",
-  hiExtremeDanger: "text-red-600",
-});
 
 /**
  * Builds the final Heat Index model configuration.

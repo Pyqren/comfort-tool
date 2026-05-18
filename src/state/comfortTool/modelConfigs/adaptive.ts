@@ -315,6 +315,13 @@ function createAdaptiveModelConfig(modelId: ComfortModel, standardMode: Adaptive
   });
 
   // Set the result builder for the model.
+  // TODO: Refactor Adaptive model to map colors directly from ThermalZone instead of using this temporary tone-to-color shim.
+  const adaptiveToneToColor: Record<string, string> = {
+    success: "#047857",
+    danger: "#dc2626",
+    default: "",
+  };
+
   builder.setResultBuilder((results, visibleInputIds, unitSystem, options, selectedChartId) => {
     // The list of result sections.
     const sections = [];
@@ -346,7 +353,7 @@ function createAdaptiveModelConfig(modelId: ComfortModel, standardMode: Adaptive
         // Return the result cell view model.
         return {
           text: text,
-          tone: isCompliant ? "success" : "danger",
+          color: isCompliant ? adaptiveToneToColor.success : adaptiveToneToColor.danger,
         };
       }),
     );
@@ -357,7 +364,7 @@ function createAdaptiveModelConfig(modelId: ComfortModel, standardMode: Adaptive
         buildResultSection("80% Acceptability", results, visibleInputIds, (result) => {
           // If the status is missing, return N/A.
           if (!result.status_80) {
-            return { text: "N/A", tone: "default" };
+            return { text: "N/A", color: "" };
           }
 
           // Build the subtext with the comfort range.
@@ -373,13 +380,13 @@ function createAdaptiveModelConfig(modelId: ComfortModel, standardMode: Adaptive
           return {
             text: result.status_80,
             subtext: subtext,
-            tone: result.acceptability_80 ? "success" : "danger",
+            color: result.acceptability_80 ? adaptiveToneToColor.success : adaptiveToneToColor.danger,
           };
         }),
         buildResultSection("90% Acceptability", results, visibleInputIds, (result) => {
           // If the status is missing, return N/A.
           if (!result.status_90) {
-            return { text: "N/A", tone: "default" };
+            return { text: "N/A", color: "" };
           }
 
           // Build the subtext with the comfort range.
@@ -395,7 +402,7 @@ function createAdaptiveModelConfig(modelId: ComfortModel, standardMode: Adaptive
           return {
             text: result.status_90,
             subtext: subtext,
-            tone: result.acceptability_90 ? "success" : "danger",
+            color: result.acceptability_90 ? adaptiveToneToColor.success : adaptiveToneToColor.danger,
           };
         }),
       );
@@ -403,7 +410,7 @@ function createAdaptiveModelConfig(modelId: ComfortModel, standardMode: Adaptive
       // Otherwise, add the European category sections.
       sections.push(
         buildResultSection("Category I", results, visibleInputIds, (result) => {
-          if (!result.status_cat_i) return { text: "N/A", tone: "default" };
+          if (!result.status_cat_i) return { text: "N/A", color: "" };
           const tempUnits = fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem];
           let subtext = undefined;
           if (result.tmp_cmf_cat_i_low !== undefined && result.tmp_cmf_cat_i_up !== undefined) {
@@ -414,11 +421,11 @@ function createAdaptiveModelConfig(modelId: ComfortModel, standardMode: Adaptive
           return {
             text: result.status_cat_i,
             subtext: subtext,
-            tone: result.acceptability_cat_i ? "success" : "danger",
+            color: result.acceptability_cat_i ? adaptiveToneToColor.success : adaptiveToneToColor.danger,
           };
         }),
         buildResultSection("Category II", results, visibleInputIds, (result) => {
-          if (!result.status_cat_ii) return { text: "N/A", tone: "default" };
+          if (!result.status_cat_ii) return { text: "N/A", color: "" };
           const tempUnits = fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem];
           let subtext = undefined;
           if (result.tmp_cmf_cat_ii_low !== undefined && result.tmp_cmf_cat_ii_up !== undefined) {
@@ -429,11 +436,11 @@ function createAdaptiveModelConfig(modelId: ComfortModel, standardMode: Adaptive
           return {
             text: result.status_cat_ii,
             subtext: subtext,
-            tone: result.acceptability_cat_ii ? "success" : "danger",
+            color: result.acceptability_cat_ii ? adaptiveToneToColor.success : adaptiveToneToColor.danger,
           };
         }),
         buildResultSection("Category III", results, visibleInputIds, (result) => {
-          if (!result.status_cat_iii) return { text: "N/A", tone: "default" };
+          if (!result.status_cat_iii) return { text: "N/A", color: "" };
           const tempUnits = fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem];
           let subtext = undefined;
           if (result.tmp_cmf_cat_iii_low !== undefined && result.tmp_cmf_cat_iii_up !== undefined) {
@@ -444,7 +451,7 @@ function createAdaptiveModelConfig(modelId: ComfortModel, standardMode: Adaptive
           return {
             text: result.status_cat_iii,
             subtext: subtext,
-            tone: result.acceptability_cat_iii ? "success" : "danger",
+            color: result.acceptability_cat_iii ? adaptiveToneToColor.success : adaptiveToneToColor.danger,
           };
         }),
       );

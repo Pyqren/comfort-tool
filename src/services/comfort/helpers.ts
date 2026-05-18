@@ -22,24 +22,9 @@ import type {
 import { UnitSystem, type UnitSystem as UnitSystemType } from "../../models/units";
 import { convertFieldValueFromSi } from "../units";
 import type { ResultTone } from "../../models/resultTones";
+import { ThermalZone } from "../../models/thermalZone";
 
-// Heat Index thresholds in Celsius
-export const HI_CAUTION = 27;
-export const HI_EXTREME_CAUTION = 32;
-export const HI_DANGER = 39;
-export const HI_EXTREME_DANGER = 51;
 
-// Humidex discomfort thresholds in Celsius
-export const HUMIDEX_NOTICEABLE = 30;
-export const HUMIDEX_EVIDENT = 35;
-export const HUMIDEX_INTENSE = 40;
-export const HUMIDEX_DANGEROUS = 45;
-export const HUMIDEX_STROKE_PROBABLE = 54;
-
-// Wind Chill frostbite thresholds in SI units (W/m2)
-export const WCI_FROSTBITE_30 = 1400;
-export const WCI_FROSTBITE_10 = 1600;
-export const WCI_FROSTBITE_2 = 2300;
 
 // ── PMV Zones ───────────────────────────────────────────────────────────────
 
@@ -136,31 +121,6 @@ export const utciStressShortLabelByCategory: Record<UtciStressCategory, string> 
 
 // todo AI This file mixes zone definitions for all models, math utilities, and UI formatting helpers. Once each model gets its own service file, the zone data (heatIndexZones, humidexZones, windChillZones, adaptiveAshraeZones, adaptiveEnZones) should move into those files. Only the shared math utilities (roundValue, ensureFiniteValue, getPaddedAxisRange, getCompareInputs) belong here long-term.
 
-// ── Thermal Index Zones ─────────────────────────────────────────────────────
-export const heatIndexZones = [
-  { label: "Safe", color: "#e2e8f0" },
-  { label: "Caution", color: "#fef08a" },
-  { label: "Extreme Caution", color: "#fde047" },
-  { label: "Danger", color: "#f97316" },
-  { label: "Extreme Danger", color: "#dc2626" },
-];
-
-export const humidexZones = [
-  { label: "Little/None", color: "#e2e8f0" },
-  { label: "Noticeable", color: "#fef08a" },
-  { label: "Evident", color: "#fde047" },
-  { label: "Intense", color: "#facc15" },
-  { label: "Dangerous", color: "#f97316" },
-  { label: "Stroke Probable", color: "#dc2626" },
-];
-
-export const windChillZones = [
-  { label: "Safe", color: "#e0f2fe" },
-  { label: "30 mins to frostbite", color: "#64b5f5" },
-  { label: "10 mins to frostbite", color: "#5c6bc0" },
-  { label: "2 mins to frostbite", color: "#8e24aa" },
-];
-
 export const adaptiveAshraeZones = [
   { label: "Too Cool", color: "#3b82f6" },
   { label: "80% Acceptability", color: "#86efac" },
@@ -176,16 +136,6 @@ export const adaptiveEnZones = [
   { label: "Too Warm", color: "#ef4444" },
 ];
 
-/**
- * Determines the Heat Index risk category based on Celsius value.
- */
-export function getHeatIndexCategory(hiSi: number): string {
-  if (hiSi >= HI_EXTREME_DANGER) return heatIndexZones[4].label;
-  if (hiSi >= HI_DANGER) return heatIndexZones[3].label;
-  if (hiSi >= HI_EXTREME_CAUTION) return heatIndexZones[2].label;
-  if (hiSi >= HI_CAUTION) return heatIndexZones[1].label;
-  return heatIndexZones[0].label;
-}
 /**
  * Resolves the metadata for a PMV value.
  * @param pmv - The predicted mean vote value.
@@ -233,30 +183,23 @@ export function getUtciStressLabel(category: string): string {
   return band ? band.label : category;
 }
 
-/**
- * Determines the Humidex discomfort level.
- */
-export function getHumidexDiscomfort(h: number): string {
-  if (h >= HUMIDEX_STROKE_PROBABLE) return humidexZones[5].label;
-  if (h >= HUMIDEX_DANGEROUS) return humidexZones[4].label;
-  if (h >= HUMIDEX_INTENSE) return humidexZones[3].label;
-  if (h >= HUMIDEX_EVIDENT) return humidexZones[2].label;
-  if (h >= HUMIDEX_NOTICEABLE) return humidexZones[1].label;
-  return humidexZones[0].label;
-}
-
-/**
- * Determines the Wind Chill frostbite risk zone.
- */
-export function getWindChillZone(wci: number): string {
-  if (wci >= WCI_FROSTBITE_2) return windChillZones[3].label;
-  if (wci >= WCI_FROSTBITE_10) return windChillZones[2].label;
-  if (wci >= WCI_FROSTBITE_30) return windChillZones[1].label;
-  return windChillZones[0].label;
-}
-
 export type ComfortZonesByInput = Partial<Record<InputIdType, ComfortZoneResponseDto>>;
 export type UtciChartResultsByInput = Partial<Record<InputIdType, UtciResponseDto>>;
+
+/**
+ * Dynamically constructs Plotly colorscales based on a zones list.
+ * @param zones The list of thermal zones.
+ * @returns A Plotly-compatible colorscale array.
+ */
+export function buildColorscale(zones: ThermalZone[]) {
+  const colorscale: Array<[number, string]> = [];
+  const step = 1 / zones.length;
+  zones.forEach((zone, i) => {
+    colorscale.push([i * step, zone.color]);
+    colorscale.push([(i + 1) * step, zone.color]);
+  });
+  return colorscale;
+}
 
 /**
  * Rounds a number to a specific number of decimal places.

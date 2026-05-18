@@ -40,7 +40,6 @@
           resultSections={toolState.selectors.getResultSections()}
           errorMessage={toolState.state.ui.errorMessage}
           isLoading={toolState.state.ui.isLoading}
-          toneToClass={getComfortModelConfig(toolState.state.ui.selectedModel).toneToClass}
           embedded={true}
         />
 

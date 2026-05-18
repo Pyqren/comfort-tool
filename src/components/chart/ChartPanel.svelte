@@ -90,13 +90,10 @@
   const axisMenuIdPrefix = $derived(
     `${chartPanelIdPrefix}-${selectedModel}-${selectedChart}`,
   );
-  // Disable zones toggle for models that do not use zones (AdaptiveAshrae, AdaptiveEn) and for dynamic charts
+  // Show zones toggle ONLY for PMV's Psychrometric chart.
   const showZonesToggle = $derived(
-    selectedModel !== ComfortModel.AdaptiveAshrae &&
-      selectedModel !== ComfortModel.AdaptiveEn &&
-      selectedChart !== ChartId.PmvDynamic &&
-      selectedChart !== ChartId.UtciDynamic &&
-      selectedChart !== ChartId.UtciThreshold,
+    selectedModel === ComfortModel.Pmv &&
+      selectedChart === ChartId.Psychrometric,
   );
 </script>
 

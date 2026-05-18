@@ -241,6 +241,22 @@ function toPmvChartInputsRequest(
  * @param _unitSystem (Ignored) Current standard unit system block.
  * @returns Array representing mapped table output sections.
  */
+// TODO: Refactor PMV model to map colors directly from ThermalZone instead of using this temporary tone-to-color shim.
+const pmvToneToColor: Record<string, string> = {
+  success: "#047857",
+  danger: "#dc2626",
+  warning: "#f97316",
+  pmvCold: "#0571b0",
+  pmvCool: "#4c78a8",
+  pmvSlightlyCool: "#92c5de",
+  pmvNeutral: "",
+  pmvSlightlyWarm: "#f4a582",
+  pmvWarm: "#e15759",
+  pmvHot: "#cc79a7",
+  pmvVeryHot: "#cc79a7",
+  pmvVeryCold: "#0571b0",
+};
+
 function buildPmvResultSections(
   results: Record<InputIdType, PmvResponseDto | null>,
   visibleInputIds: InputIdType[],
@@ -259,7 +275,7 @@ function buildPmvResultSections(
     buildResultSection("Compliance", results, visibleInputIds, (result) => {
       return {
         text: result.isCompliant ? "Compliant" : "Out of range",
-        tone: result.isCompliant ? "success" : "danger",
+        color: result.isCompliant ? pmvToneToColor.success : pmvToneToColor.danger,
       };
     }),
   );
@@ -279,7 +295,7 @@ function buildPmvResultSections(
 
         return {
           text: `${formattedValue} ${airSpeedUnits}`,
-          tone: "default",
+          color: "",
         };
       }),
     );
@@ -290,7 +306,7 @@ function buildPmvResultSections(
     buildResultSection("PMV", results, visibleInputIds, (result) => {
       return {
         text: result.pmv.toFixed(2),
-        tone: "default",
+        color: "",
       };
     }),
   );
@@ -298,7 +314,11 @@ function buildPmvResultSections(
   // Add the "Zone" section. Example: "Neutral"
   sections.push(
     buildResultSection("Zone", results, visibleInputIds, (result) => {
-      return getPmvZone(result.pmv);
+      const zoneInfo = getPmvZone(result.pmv);
+      return {
+        text: zoneInfo.text,
+        color: pmvToneToColor[zoneInfo.tone] || "",
+      };
     }),
   );
 
@@ -307,7 +327,7 @@ function buildPmvResultSections(
     buildResultSection("PPD", results, visibleInputIds, (result) => {
       return {
         text: `${result.ppd.toFixed(1)}%`,
-        tone: "default",
+        color: "",
       };
     }),
   );
@@ -317,7 +337,7 @@ function buildPmvResultSections(
     buildResultSection("Acceptability", results, visibleInputIds, (result) => {
       return {
         text: `${(100 - result.ppd).toFixed(1)}%`,
-        tone: "default",
+        color: "",
       };
     }),
   );

@@ -126,6 +126,21 @@ function toUtciChartInputsRequest(
  * @param unitSystem Preferred User format metric (SI vs IP).
  * @returns Abstract section mappings.
  */
+// TODO: Refactor UTCI model to map colors directly from ThermalZone instead of using this temporary tone-to-color shim.
+const utciToneToColor: Record<string, string> = {
+  utciExtremeCold: "#0f172a",
+  utciVeryStrongCold: "#1d4ed8",
+  utciStrongCold: "#2563eb",
+  utciModerateCold: "#3b82f6",
+  utciSlightCold: "#7dd3fc",
+  utciNoStress: "#34d399",
+  utciModerateHeat: "#fbbf24",
+  utciStrongHeat: "#fb923c",
+  utciVeryStrongHeat: "#f97316",
+  utciExtremeHeat: "#dc2626",
+  default: "",
+};
+
 function buildUtciResultSections(
   results: Record<InputIdType, UtciResponseDto | null>,
   visibleInputIds: InputIdType[],
@@ -153,7 +168,7 @@ function buildUtciResultSections(
       // Return the result cell view model.
       return {
         text: `${formattedValue} ${temperatureUnits}`,
-        tone: "default",
+        color: "",
       };
     }),
   );
@@ -161,9 +176,10 @@ function buildUtciResultSections(
   // Add the stress category description. Example: "No Thermal Stress"
   sections.push(
     buildResultSection("Stress Category", results, visibleInputIds, (result) => {
+      const stressTone = getUtciStressTone(result.stressCategory);
       return {
         text: getUtciStressLabel(result.stressCategory),
-        tone: getUtciStressTone(result.stressCategory),
+        color: utciToneToColor[stressTone] || "",
       };
     }),
   );

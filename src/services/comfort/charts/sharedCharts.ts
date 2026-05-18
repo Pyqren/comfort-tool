@@ -11,9 +11,11 @@ import { CalculationSource } from "../../../models/calculationMetadata";
 import type { ComfortPointDto, CompareInputMap, PlotlyChartResponseDto, PlotTraceDto, PlotAnnotationDto } from "../../../models/comfortDtos";
 import { UnitSystem, type UnitSystem as UnitSystemType } from "../../../models/units";
 import { convertFieldValueFromSi, convertFieldValueToSi } from "../../units";
-import { getCompareInputs, roundValue, type ComfortZonesByInput } from "../helpers";
+import { getCompareInputs, roundValue, buildColorscale, type ComfortZonesByInput } from "../helpers";
 import { buildComfortPolygonTrace, buildInputAnnotation, buildInputScatterTrace, buildContourTrace } from "./plotlyBuilders";
 import { buildComfortZonePolygon } from "./pmvCharts";
+import { ThermalZone } from "../../../models/thermalZone";
+import type { InputId as InputIdType } from "../../../models/inputSlots";
 
 /**
  * Builds the Relative Humidity chart.
@@ -114,7 +116,7 @@ export function buildRelativeHumidityChart(
  * @returns PlotlyChartResponseDto - The chart data containing traces and layout.
  */
 export function buildGenericHeatmapRangeChart(
-  payload: { inputs: CompareInputMap<Record<string, any>> },
+  inputsMap: CompareInputMap<Record<string, any>>,
   cachedResultsByInput: any,
   unitSystem: UnitSystemType,
   config: {
@@ -132,7 +134,7 @@ export function buildGenericHeatmapRangeChart(
     calculatePoint: (xSi: number, ySi: number) => { rangeValue: number; category: string };
   }
 ): PlotlyChartResponseDto {
-  const inputs = getCompareInputs(payload.inputs);
+  const inputs = getCompareInputs(inputsMap);
   const showInputLegend = inputs.length > 1;
 
   const xMeta = fieldMetaByKey[config.xKey];
@@ -258,7 +260,7 @@ export function buildGenericHeatmapRangeChart(
  * Builds a generic dynamic 2D contour chart for thermal indices based on user-selected axes.
  */
 export function buildGenericDynamicHeatmapChart(
-  payload: { inputs: CompareInputMap<Record<string, any>> },
+  inputsMap: CompareInputMap<Record<string, any>>,
   cachedResultsByInput: any,
   unitSystem: UnitSystemType,
   dynamicXAxis: FieldKey | undefined,
@@ -272,7 +274,7 @@ export function buildGenericDynamicHeatmapChart(
     getHovertemplateScatter: (inputLabel: string, cached: any) => string;
   }
 ): PlotlyChartResponseDto {
-  const inputs = getCompareInputs(payload.inputs);
+  const inputs = getCompareInputs(inputsMap);
   const showInputLegend = inputs.length > 1;
 
   if (!dynamicXAxis || !dynamicYAxis || dynamicXAxis === dynamicYAxis) {
@@ -417,4 +419,91 @@ export function buildGenericDynamicHeatmapChart(
     annotations: [],
     source: CalculationSource.JsThermalComfort
   };
+}
+
+/**
+ * Model Chart Configuration Interface
+ */
+export interface ModelChartConfig {
+  dynamicChartId: string;
+  dynamicTitle: string;
+  zones: ThermalZone[];
+  customRanges?: Partial<Record<FieldKey, { min: number; max: number }>>;
+  baselinePayloadDefault: any;
+  calculateDynamicPoint: (xSi: number, ySi: number, dynamicXAxis: FieldKey, dynamicYAxis: FieldKey, baselinePayload: any) => { rangeValue: number; category: string };
+  getHovertemplateScatterDynamic: (label: string, cached: any) => string;
+  
+  // Static ranges chart config (optional)
+  staticConfig?: {
+    title: string;
+    xKey: FieldKey;
+    yKey: FieldKey;
+    xRangeSi: { min: number; max: number };
+    yRangeSi: { min: number; max: number };
+    hovertemplateContour: string;
+    getHovertemplateScatter: (label: string, cached: any) => string;
+    getScatterXSi: (payload: any) => number;
+    getScatterYSi: (payload: any) => number;
+    calculateStaticPoint: (xSi: number, ySi: number) => { rangeValue: number; category: string };
+  };
+}
+
+/**
+ * A single unified comfort model chart building engine.
+ * Selects between dynamic and static range charts and automatically injects common baseline properties.
+ */
+export function buildComfortModelChart(
+  chartId: string,
+  chartSource: any,
+  resultsByInput: any,
+  unitSystem: UnitSystemType,
+  config: ModelChartConfig
+): PlotlyChartResponseDto | null {
+  if (!chartSource) return null;
+  const sharedChartRequest = chartSource.chartRequest;
+
+  if (chartId === config.dynamicChartId) {
+    return buildGenericDynamicHeatmapChart(
+      sharedChartRequest,
+      resultsByInput,
+      unitSystem,
+      chartSource.dynamicXAxis as FieldKey,
+      chartSource.dynamicYAxis as FieldKey,
+      {
+        title: config.dynamicTitle,
+        zMax: config.zones.length - 1,
+        colorscale: buildColorscale(config.zones),
+        getRange: (key: FieldKey) => {
+          if (config.customRanges?.[key]) return config.customRanges[key]!;
+          const meta = fieldMetaByKey[key];
+          return { min: meta.minValue, max: meta.maxValue };
+        },
+        calculatePoint: (xSi, ySi, dynamicXAxis, dynamicYAxis) => {
+          const baselineInputId = chartSource.baselineInputId || (Object.keys(sharedChartRequest)[0] as InputIdType);
+          const baselinePayload = sharedChartRequest[baselineInputId] || config.baselinePayloadDefault;
+          return config.calculateDynamicPoint(xSi, ySi, dynamicXAxis, dynamicYAxis, baselinePayload);
+        },
+        getHovertemplateScatter: config.getHovertemplateScatterDynamic,
+      }
+    );
+  }
+
+  if (config.staticConfig) {
+    return buildGenericHeatmapRangeChart(sharedChartRequest, resultsByInput, unitSystem, {
+      title: config.staticConfig.title,
+      xKey: config.staticConfig.xKey,
+      yKey: config.staticConfig.yKey,
+      xRangeSi: config.staticConfig.xRangeSi,
+      yRangeSi: config.staticConfig.yRangeSi,
+      zMax: config.zones.length - 1,
+      colorscale: buildColorscale(config.zones),
+      hovertemplateContour: config.staticConfig.hovertemplateContour,
+      getHovertemplateScatter: config.staticConfig.getHovertemplateScatter,
+      getScatterXSi: config.staticConfig.getScatterXSi,
+      getScatterYSi: config.staticConfig.getScatterYSi,
+      calculatePoint: config.staticConfig.calculateStaticPoint,
+    });
+  }
+
+  return null;
 }

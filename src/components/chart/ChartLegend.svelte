@@ -15,12 +15,12 @@
   import {
     adaptiveAshraeZones,
     adaptiveEnZones,
-    heatIndexZones,
-    humidexZones,
-    windChillZones,
     pmvZones,
     utciStressBands,
   } from "../../services/comfort/helpers";
+  import { heatIndexZonesList } from "../../comfortModels/heatIndex";
+  import { humidexZonesList } from "../../comfortModels/humidex";
+  import { windChillZonesList } from "../../comfortModels/windChill";
 
   type LegendZone = {
     readonly label: string;
@@ -84,15 +84,15 @@
 {/if}
 
 {#if selectedChart === ChartId.HeatIndexRanges || selectedChart === ChartId.HeatIndexDynamic}
-  {@render legendSection("Heat Index", heatIndexZones)}
+  {@render legendSection("Heat Index", heatIndexZonesList)}
 {/if}
 
 {#if selectedChart === ChartId.Humidex || selectedChart === ChartId.HumidexDynamic}
-  {@render legendSection("Humidex", humidexZones)}
+  {@render legendSection("Humidex", humidexZonesList)}
 {/if}
 
-{#if selectedChart === ChartId.WindChill || selectedChart === ChartId.WindChillDynamic}
-  {@render legendSection("Wind Chill", windChillZones)}
+{#if selectedChart === ChartId.WindChillDynamic}
+  {@render legendSection("Wind Chill", windChillZonesList)}
 {/if}
 
 {#if selectedChart === ChartId.Adaptive || selectedChart === ChartId.AdaptiveDynamic}

@@ -9,6 +9,7 @@ export interface ThermalZoneConfig {
   min?: number;
   max?: number;
   color: string;
+  textColor?: string;
   cssClass?: string;
   category?: string; // Used to match the category of the model to the correct zone (e.g., UTCI stress categories)
 }
@@ -19,6 +20,7 @@ export class ThermalZone {
   public readonly min: number;
   public readonly max: number;
   public readonly color: string;
+  public readonly textColor: string;
   public readonly cssClass?: string;
   public readonly category?: string;
 
@@ -28,6 +30,7 @@ export class ThermalZone {
     this.min = config.min ?? -Infinity;
     this.max = config.max ?? Infinity;
     this.color = config.color;
+    this.textColor = config.textColor ?? config.color;
     this.cssClass = config.cssClass;
     this.category = config.category;
   }

@@ -29,7 +29,7 @@ export type SelectedChartByModelState = Record<ComfortModelType, ChartIdType>;
 export type ResultCellViewModel = {
   text: string;
   subtext?: string;
-  tone?: ResultTone;
+  color?: string;
 };
 
 // View model for a single result section.
