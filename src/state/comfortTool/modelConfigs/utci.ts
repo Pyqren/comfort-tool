@@ -14,15 +14,14 @@ import { fieldMetaByKey } from "../../../models/inputFieldsMeta";
 import { InputControlId } from "../../../models/inputControls";
 import { UnitSystem, type UnitSystem as UnitSystemType } from "../../../models/units";
 import { createControlBehavior, createTemperatureControlBehavior } from "../../../services/comfort/controls/controlBehaviors";
-import { buildUtciStressChart, buildUtciDynamicChart, buildUtciThresholdChart } from "../../../services/comfort/charts/utciCharts";
+import { buildUtciStressChart, buildUtciDynamicChart } from "../../../services/comfort/charts/utciCharts";
 import { calculateUtci } from "../../../services/comfort/utci";
 import { convertFieldValueFromSi, formatDisplayValue } from "../../../services/units";
 import { getUtciStressTone, getUtciStressLabel } from "../../../services/comfort/helpers";
 import { OptionKey, TemperatureMode, defaultUtciOptions, type UtciModelOptions } from "../../../models/inputModes";
-import { applyOperativeTemperatureControlMode, synchronizeControlInputState } from "../../../services/comfort/syncState";
 import { createSingleInputPatch } from "../../../services/comfort/controls/types";
 
-const utciChartIds: ChartIdType[] = [ChartId.Stress, ChartId.UtciThreshold, ChartId.UtciDynamic];
+const utciChartIds: ChartIdType[] = [ChartId.Stress, ChartId.UtciDynamic];
 
 import { ComfortModelBuilder, isRecord, createEmptyResults, buildResultSection } from "./builder";
 
@@ -218,11 +217,6 @@ function buildUtciChartResult(
     return buildUtciDynamicChart(chartSource.chartRequest, resultsByInput, unitSystem, chartSource.dynamicXAxis, chartSource.dynamicYAxis, chartSource.baselineInputId);
   }
 
-  // Handle the Threshold chart type.
-  if (chartId === ChartId.UtciThreshold) {
-    return buildUtciThresholdChart(chartSource.chartRequest, resultsByInput, unitSystem, chartSource.baselineInputId);
-  }
-
   // Return null if the chart ID is not supported.
   return null;
 }
@@ -264,35 +258,9 @@ builder.addControl({
       const options = normalizeUtciOptions(context.options) || defaultUtciOptions;
       return options[OptionKey.TemperatureMode] === TemperatureMode.Operative;
     },
-    // Lock radiant temperature when the Threshold chart is selected.
-    disabled: (context) => context.selectedChartId === ChartId.UtciThreshold,
   }),
 });
 
-// Register the synchronizer for UTCI.
-builder.setSynchronizer((context) => {
-  // If the Threshold chart is selected, force Mean Radiant Temperature to match Dry Bulb Temperature.
-  if (context.selectedChartId === ChartId.UtciThreshold) {
-    const inputsPatch = {} as any;
-    const inputIds = context.visibleInputIds;
-
-    inputIds.forEach((inputId) => {
-      const input = context.inputsByInput[inputId];
-      if (input[FieldKey.MeanRadiantTemperature] !== input[FieldKey.DryBulbTemperature]) {
-        inputsPatch[inputId] = {
-          ...input,
-          [FieldKey.MeanRadiantTemperature]: input[FieldKey.DryBulbTemperature],
-        };
-      }
-    });
-
-    if (Object.keys(inputsPatch).length > 0) {
-      return { inputsPatch };
-    }
-  }
-
-  return null;
-});
 
 // Register the wind speed control.
 builder.addControl({

@@ -14,7 +14,6 @@ export const ChartId = {
   AdaptiveDynamic: "adaptiveDynamic", //  Adaptive dynamic chart
   PmvDynamic: "pmvDynamic", // PMV (ASHRAE) dynamic chart
   UtciDynamic: "utciDynamic", // UTCI (Heat stress) dynamic chart
-  UtciThreshold: "utciThreshold", // UTCI Threshold chart
   HeatIndexRanges: "heatIndexRanges", // Heat index chart
   HeatIndexDynamic: "heatIndexDynamic", // Heat index dynamic chart
   Humidex: "humidex", // Humidex chart
@@ -77,11 +76,6 @@ export const chartMetaById: Record<ChartId, ChartMetadata> = {
     emptyMessage: "No dynamic chart yet.",
     heightClass: "h-[480px] xl:h-[480px]",
     isDynamic: true,
-  },
-  [ChartId.UtciThreshold]: {
-    name: "Threshold",
-    emptyMessage: "No threshold chart yet.",
-    heightClass: "h-[480px] xl:h-[480px]",
   },
   [ChartId.HeatIndexRanges]: {
     name: "Psychrometric",

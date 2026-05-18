@@ -106,7 +106,7 @@ export function buildRelativeHumidityChart(
 }
 
 /**
- * Builds a generic range chart for thermal indices, creating a 2D heatmap 
+ * Builds a generic range chart for thermal indices, creating a 2D contour chart 
  * of the index over a specified range of two input variables.
  * 
  * @param payload - The inputs for the chart, including multiple calculation inputs.
@@ -115,7 +115,7 @@ export function buildRelativeHumidityChart(
  * @param config - Configuration object defining the chart's properties.
  * @returns PlotlyChartResponseDto - The chart data containing traces and layout.
  */
-export function buildGenericHeatmapRangeChart(
+function buildStaticContourChart(
   inputsMap: CompareInputMap<Record<string, any>>,
   cachedResultsByInput: any,
   unitSystem: UnitSystemType,
@@ -259,7 +259,7 @@ export function buildGenericHeatmapRangeChart(
 /**
  * Builds a generic dynamic 2D contour chart for thermal indices based on user-selected axes.
  */
-export function buildGenericDynamicHeatmapChart(
+function buildDynamicContourChart(
   inputsMap: CompareInputMap<Record<string, any>>,
   cachedResultsByInput: any,
   unitSystem: UnitSystemType,
@@ -463,7 +463,7 @@ export function buildComfortModelChart(
   const sharedChartRequest = chartSource.chartRequest;
 
   if (chartId === config.dynamicChartId) {
-    return buildGenericDynamicHeatmapChart(
+    return buildDynamicContourChart(
       sharedChartRequest,
       resultsByInput,
       unitSystem,
@@ -489,7 +489,7 @@ export function buildComfortModelChart(
   }
 
   if (config.staticConfig) {
-    return buildGenericHeatmapRangeChart(sharedChartRequest, resultsByInput, unitSystem, {
+    return buildStaticContourChart(sharedChartRequest, resultsByInput, unitSystem, {
       title: config.staticConfig.title,
       xKey: config.staticConfig.xKey,
       yKey: config.staticConfig.yKey,
