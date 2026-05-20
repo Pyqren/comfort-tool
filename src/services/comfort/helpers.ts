@@ -16,172 +16,12 @@ import { FieldKey } from "../../models/fieldKeys";
 import { fieldMetaByKey } from "../../models/inputFieldsMeta";
 import type {
   CompareInputMap,
-  ComfortZoneResponseDto,
-  UtciResponseDto,
 } from "../../models/comfortDtos";
+import type { ComfortZoneResponseDto } from "../../comfortModels/pmv";
+import type { UtciResponseDto } from "../../comfortModels/utci";
 import { UnitSystem, type UnitSystem as UnitSystemType } from "../../models/units";
 import { convertFieldValueFromSi } from "../units";
-import type { ResultTone } from "../../models/resultTones";
 import { ThermalZone } from "../../models/thermalZone";
-
-
-
-// ── PMV Zones ───────────────────────────────────────────────────────────────
-
-export type PmvZoneId =
-  | "cold"
-  | "cool"
-  | "slightlyCool"
-  | "neutral"
-  | "slightlyWarm"
-  | "warm"
-  | "hot";
-
-export interface PmvZoneMeta {
-  id: PmvZoneId;
-  label: string;
-  min: number;
-  max: number;
-  color: string;
-}
-
-export const pmvZones = [
-  { id: "cold", label: "Cold", min: -Infinity, max: -2.5, color: "#0571b0" },
-  { id: "cool", label: "Cool", min: -2.5, max: -1.5, color: "#4c78a8" },
-  { id: "slightlyCool", label: "Slightly Cool", min: -1.5, max: -0.5, color: "#92c5de" },
-  { id: "neutral", label: "Neutral", min: -0.5, max: 0.5, color: "#f2f2f2" },
-  { id: "slightlyWarm", label: "Slightly Warm", min: 0.5, max: 1.5, color: "#f4a582" },
-  { id: "warm", label: "Warm", min: 1.5, max: 2.5, color: "#e15759" },
-  { id: "hot", label: "Hot", min: 2.5, max: Infinity, color: "#cc79a7" },
-] as const satisfies readonly PmvZoneMeta[];
-
-// ── UTCI Stress Zones ───────────────────────────────────────────────────────
-
-export const UtciStressCategory = {
-  ExtremeColdStress: "extreme cold stress",
-  VeryStrongColdStress: "very strong cold stress",
-  StrongColdStress: "strong cold stress",
-  ModerateColdStress: "moderate cold stress",
-  SlightColdStress: "slight cold stress",
-  NoThermalStress: "no thermal stress",
-  ModerateHeatStress: "moderate heat stress",
-  StrongHeatStress: "strong heat stress",
-  VeryStrongHeatStress: "very strong heat stress",
-  ExtremeHeatStress: "extreme heat stress",
-} as const;
-
-export type UtciStressCategory = (typeof UtciStressCategory)[keyof typeof UtciStressCategory];
-
-export const utciStressCategoryOrder: UtciStressCategory[] = [
-  UtciStressCategory.ExtremeColdStress,
-  UtciStressCategory.VeryStrongColdStress,
-  UtciStressCategory.StrongColdStress,
-  UtciStressCategory.ModerateColdStress,
-  UtciStressCategory.SlightColdStress,
-  UtciStressCategory.NoThermalStress,
-  UtciStressCategory.ModerateHeatStress,
-  UtciStressCategory.StrongHeatStress,
-  UtciStressCategory.VeryStrongHeatStress,
-  UtciStressCategory.ExtremeHeatStress,
-];
-
-interface UtciStressBand {
-  minimum: number;
-  maximum: number;
-  category: UtciStressCategory;
-  label: string;
-  color: string;
-}
-
-export const utciStressBands: UtciStressBand[] = [
-  { minimum: -50, maximum: -40, category: UtciStressCategory.ExtremeColdStress, label: "Extreme Cold Stress", color: "#0f172a" },
-  { minimum: -40, maximum: -27, category: UtciStressCategory.VeryStrongColdStress, label: "Very Strong Cold Stress", color: "#1d4ed8" },
-  { minimum: -27, maximum: -13, category: UtciStressCategory.StrongColdStress, label: "Strong Cold Stress", color: "#2563eb" },
-  { minimum: -13, maximum: 0, category: UtciStressCategory.ModerateColdStress, label: "Moderate Cold Stress", color: "#3b82f6" },
-  { minimum: 0, maximum: 9, category: UtciStressCategory.SlightColdStress, label: "Slight Cold Stress", color: "#7dd3fc" },
-  { minimum: 9, maximum: 26, category: UtciStressCategory.NoThermalStress, label: "No Thermal Stress", color: "#34d399" },
-  { minimum: 26, maximum: 32, category: UtciStressCategory.ModerateHeatStress, label: "Moderate Heat Stress", color: "#fbbf24" },
-  { minimum: 32, maximum: 38, category: UtciStressCategory.StrongHeatStress, label: "Strong Heat Stress", color: "#fb923c" },
-  { minimum: 38, maximum: 46, category: UtciStressCategory.VeryStrongHeatStress, label: "Very Strong Heat Stress", color: "#f97316" },
-  { minimum: 46, maximum: 55, category: UtciStressCategory.ExtremeHeatStress, label: "Extreme Heat Stress", color: "#dc2626" },
-];
-
-export const utciStressShortLabelByCategory: Record<UtciStressCategory, string> = {
-  [UtciStressCategory.ExtremeColdStress]: "Ext.<br>cold",
-  [UtciStressCategory.VeryStrongColdStress]: "V strong<br>cold",
-  [UtciStressCategory.StrongColdStress]: "Strong<br>cold",
-  [UtciStressCategory.ModerateColdStress]: "Moderate<br>cold",
-  [UtciStressCategory.SlightColdStress]: "Slight<br>cold",
-  [UtciStressCategory.NoThermalStress]: "No<br>stress",
-  [UtciStressCategory.ModerateHeatStress]: "Moderate<br>heat",
-  [UtciStressCategory.StrongHeatStress]: "Strong<br>heat",
-  [UtciStressCategory.VeryStrongHeatStress]: "V strong<br>heat",
-  [UtciStressCategory.ExtremeHeatStress]: "Ext.<br>heat",
-};
-
-// todo AI This file mixes zone definitions for all models, math utilities, and UI formatting helpers. Once each model gets its own service file, the zone data (heatIndexZones, humidexZones, windChillZones, adaptiveAshraeZones, adaptiveEnZones) should move into those files. Only the shared math utilities (roundValue, ensureFiniteValue, getPaddedAxisRange, getCompareInputs) belong here long-term.
-
-export const adaptiveAshraeZones = [
-  { label: "Too Cool", color: "#3b82f6" },
-  { label: "80% Acceptability", color: "#86efac" },
-  { label: "90% Acceptability", color: "#22c55e" },
-  { label: "Too Warm", color: "#ef4444" },
-];
-
-export const adaptiveEnZones = [
-  { label: "Too Cool", color: "#3b82f6" },
-  { label: "Category III", color: "#fde047" },
-  { label: "Category II", color: "#86efac" },
-  { label: "Category I", color: "#22c55e" },
-  { label: "Too Warm", color: "#ef4444" },
-];
-
-/**
- * Resolves the metadata for a PMV value.
- * @param pmv - The predicted mean vote value.
- * @returns The metadata for the matching thermal sensation zone.
- */
-export function getPmvZoneMeta(pmv: number): PmvZoneMeta {
-  if (isNaN(pmv)) return pmvZones[0];
-  return pmvZones.find((zone) => pmv >= zone.min && pmv < zone.max) ?? pmvZones[0];
-}
-
-/**
- * Determines the PMV thermal sensation zone.
- */
-export function getPmvZone(pmv: number): { text: string; tone: ResultTone } {
-  const meta = getPmvZoneMeta(pmv);
-  // Construct tone id from zone id (e.g., "cold" -> "pmvCold")
-  const toneId = `pmv${meta.id.charAt(0).toUpperCase() + meta.id.slice(1)}` as ResultTone;
-  return { text: meta.label, tone: toneId };
-}
-
-/**
- * Determines the UTCI stress category tone.
- */
-export function getUtciStressTone(category: string): ResultTone {
-  switch (category) {
-    case UtciStressCategory.ExtremeColdStress: return "utciExtremeCold";
-    case UtciStressCategory.VeryStrongColdStress: return "utciVeryStrongCold";
-    case UtciStressCategory.StrongColdStress: return "utciStrongCold";
-    case UtciStressCategory.ModerateColdStress: return "utciModerateCold";
-    case UtciStressCategory.SlightColdStress: return "utciSlightCold";
-    case UtciStressCategory.NoThermalStress: return "utciNoStress";
-    case UtciStressCategory.ModerateHeatStress: return "utciModerateHeat";
-    case UtciStressCategory.StrongHeatStress: return "utciStrongHeat";
-    case UtciStressCategory.VeryStrongHeatStress: return "utciVeryStrongHeat";
-    case UtciStressCategory.ExtremeHeatStress: return "utciExtremeHeat";
-    default: return "default";
-  }
-}
-
-/**
- * Determines the UTCI stress category display label.
- */
-export function getUtciStressLabel(category: string): string {
-  const band = utciStressBands.find((b) => b.category === category);
-  return band ? band.label : category;
-}
 
 export type ComfortZonesByInput = Partial<Record<InputIdType, ComfortZoneResponseDto>>;
 export type UtciChartResultsByInput = Partial<Record<InputIdType, UtciResponseDto>>;
@@ -209,6 +49,15 @@ export function buildColorscale(zones: ThermalZone[]) {
  */
 export function roundValue(value: number, decimals = 3): number {
   return Number(value.toFixed(decimals));
+}
+
+/**
+ * Checks if a value is a finite number.
+ * @param value The value to check.
+ * @returns True if the value is a number and is finite.
+ */
+export function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 /**

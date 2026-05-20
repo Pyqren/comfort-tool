@@ -10,6 +10,24 @@ export const ComfortModel = {
 
 export type ComfortModel = (typeof ComfortModel)[keyof typeof ComfortModel];
 
+export const JsThermalComfortStandard = {
+  ASHRAE: "ASHRAE",
+  ISO: "ISO",
+} as const;
+
+export type JsThermalComfortStandard = (typeof JsThermalComfortStandard)[keyof typeof JsThermalComfortStandard];
+
+/**
+ * Standard compliance labels for calculation results.
+ */
+export const ComplianceStatus = {
+  Compliant: "Compliant",
+  NonCompliant: "Non-compliant",
+  OutOfRange: "Out of range",
+} as const;
+
+export type ComplianceStatus = (typeof ComplianceStatus)[keyof typeof ComplianceStatus];
+
 // todo AI comfortModelOrder and comfortModelMetaById need to be kept in sync with the comfortModelConfigs object in src/state/comfortTool/modelConfigs/index.ts. If you add a model here but forget to register it in modelConfigs (or vice versa), the app will silently break at runtime. Ideally, the model configs would be the single registration point and this order/meta would be derived from them.
 // The order in which the comfort models are displayed in the dropdown.
 export const comfortModelOrder: ComfortModel[] = [

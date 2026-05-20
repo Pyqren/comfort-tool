@@ -11,16 +11,13 @@
   import ChartPanel from "../components/chart/ChartPanel.svelte";
   import InputPanel from "../components/input-panel/InputPanel.svelte";
   import ResultsPanel from "../components/ResultsPanel.svelte";
-  import { getComfortModelConfig } from "../state/comfortTool/modelConfigs";
   import type { ComfortToolController } from "../state/comfortTool/types";
 
   interface Props {
     toolState: ComfortToolController;
   }
 
-  let {
-    toolState,
-  }: Props = $props();
+  let { toolState }: Props = $props();
 </script>
 
 <main id="overview" class="bg-stone-50 px-4 py-4 sm:px-6 lg:px-8">

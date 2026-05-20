@@ -11,7 +11,6 @@ import type { ChartId as ChartIdType } from "../../models/chartOptions";
 import type { InputControlId as InputControlIdType, InputControlViewModel } from "../../models/inputControls";
 import type { OptionKey as OptionKeyType } from "../../models/inputModes";
 import type { UnitSystem as UnitSystemType } from "../../models/units";
-import type { ResultTone } from "../../models/resultTones";
 import type { ShareStateSnapshot } from "./shareState";
 
 // State for a single input.

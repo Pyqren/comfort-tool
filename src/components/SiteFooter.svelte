@@ -17,23 +17,35 @@
   } from "../models/siteShellConfig";
 </script>
 
-<Footer footerType="custom" class="border-t border-stone-800 bg-stone-950 text-white rounded-none">
+<Footer class="border-t border-stone-800 bg-stone-950 text-white rounded-none">
   <div class="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
-    <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <div
+      class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+    >
       <div class="min-w-0">
         <div class="flex flex-wrap items-center gap-4">
           <FooterBrand
-            href="#overview"
+            href="/"
             src={siteBrand.footerLogoSrc}
             alt="CBE logo"
             class="h-9 w-auto object-contain"
           />
-          <Img src={siteBrand.berkeleyLogoSrc} alt="UC Berkeley logo" class="h-7 w-auto object-contain opacity-85" />
+          <Img
+            src={siteBrand.berkeleyLogoSrc}
+            alt="UC Berkeley logo"
+            class="h-7 w-auto object-contain opacity-85"
+          />
         </div>
 
         <div class="mt-3">
-          <Heading tag="h6" class="text-eyebrow tracking-[0.18em] text-white/40">{siteBrand.eyebrow}</Heading>
-          <Heading tag="h2" class="mt-1 text-base font-semibold tracking-tight text-white">{siteBrand.title}</Heading>
+          <Heading tag="h6" class="text-eyebrow tracking-[0.18em] text-white/40"
+            >{siteBrand.eyebrow}</Heading
+          >
+          <Heading
+            tag="h2"
+            class="mt-1 text-base font-semibold tracking-tight text-white"
+            >{siteBrand.title}</Heading
+          >
           <p class="mt-1 text-sm text-white/58 max-w-2xl">
             {siteFooterSummary}
           </p>
@@ -46,8 +58,12 @@
           <FooterLinkGroup class="flex-col space-y-2">
             <FooterLink
               href={siteFooterDocumentationLink.href}
-              target={siteFooterDocumentationLink.external ? "_blank" : undefined}
-              rel={siteFooterDocumentationLink.external ? "noreferrer" : undefined}
+              target={siteFooterDocumentationLink.external
+                ? "_blank"
+                : undefined}
+              rel={siteFooterDocumentationLink.external
+                ? "noreferrer"
+                : undefined}
               class="text-sm text-white/80 hover:text-white"
             >
               {siteFooterDocumentationLink.label}
@@ -81,7 +97,9 @@
       </div>
     </div>
 
-    <p class="mt-5 border-t border-white/10 pt-4 text-xs leading-6 text-white/38">
+    <p
+      class="mt-5 border-t border-white/10 pt-4 text-xs leading-6 text-white/38"
+    >
       {siteFooterCitation}
     </p>
   </div>

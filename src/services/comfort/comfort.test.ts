@@ -4,9 +4,8 @@ import { inputDefaultsById, InputId } from "../../models/inputSlots";
 import { AirSpeedInputMode, HumidityInputMode, OptionKey } from "../../models/inputModes";
 import { DerivedInputId, FieldKey } from "../../models/fieldKeys";
 import { UnitSystem } from "../../models/units";
-import { buildComparePsychrometricChart, buildComfortZonePolygon } from "./charts/pmvCharts";
-import { buildUtciStressChart } from "./charts/utciCharts";
-import { calculateComfortZone } from "./comfortZone";
+import { buildComparePsychrometricChart, buildComfortZonePolygon, pmv_ppd_ashrae, PMV_COMFORT_LIMIT, calculateComfortZone } from "../../comfortModels/pmv";
+import { buildUtciStressChart, calculateUtci } from "../../comfortModels/utci";
 import {
   deriveRelativeAirSpeedFromMeasured,
   deriveRelativeHumidityFromDewPoint,
@@ -15,9 +14,7 @@ import { check_standard_compliance } from "jsthermalcomfort/lib/esm/utilities/ut
 import {
   synchronizeControlInputState,
 } from "./syncState";
-import { pmv_ppd_ashrae, PMV_COMFORT_LIMIT } from "./pmv";
 import { clothingGarmentOptions, clothingTypicalEnsembles, metabolicActivityOptions } from "./referenceValues";
-import { calculateUtci } from "./utci";
 import { CalculationSource, ComfortStandard } from "../../models/calculationMetadata";
 import { predictClothingInsulation as predictClothingInsulationFromService } from "./clothingTools";
 

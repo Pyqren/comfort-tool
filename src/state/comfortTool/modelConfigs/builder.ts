@@ -1,11 +1,10 @@
 import { inputOrder, type InputId as InputIdType } from "../../../models/inputSlots";
-import type { ResultSectionViewModel, ModelOptionsState } from "../types";
+import type { ResultSectionViewModel, ModelOptionsState, ResultCellViewModel } from "../types";
 import type { ComfortModelDefinition, ModelOptionChangeHandler } from "./index";
 import type { ComfortModel as ComfortModelType } from "../../../models/comfortModels";
 import type { FieldKey as FieldKeyType } from "../../../models/fieldKeys";
 import type { ChartId as ChartIdType } from "../../../models/chartOptions";
 import type { OptionKey as OptionKeyType } from "../../../models/inputModes";
-import type { ResultTone } from "../../../models/resultTones";
 import type { InputControlDefinition } from "../../../services/comfort/controls/types";
 import type { ThermalZone } from "../../../models/thermalZone";
 
@@ -44,7 +43,7 @@ export function buildResultSection<T>(
   title: string,
   resultsByInput: Record<InputIdType, T | null>,
   visibleInputIds: InputIdType[],
-  formatter: (result: T) => { text: string; subtext?: string; tone?: ResultTone },
+  formatter: (result: T) => ResultCellViewModel,
   group?: string,
 ): ResultSectionViewModel {
   return {
@@ -60,7 +59,7 @@ export function buildResultSection<T>(
 
       acc[inputId] = formattedValue;
       return acc;
-    }, {} as Record<InputIdType, { text: string; subtext?: string; tone?: ResultTone } | null>),
+    }, {} as Record<InputIdType, ResultCellViewModel | null>),
   };
 }
 

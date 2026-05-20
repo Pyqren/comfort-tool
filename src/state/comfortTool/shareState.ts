@@ -11,6 +11,7 @@ import { UnitSystem, type UnitSystem as UnitSystemType } from "../../models/unit
 import { allFieldOrder } from "../../models/inputFieldsMeta";
 import { getComfortModelConfig } from "./modelConfigs";
 import type { ComfortToolStateSlice } from "./types";
+import { isFiniteNumber } from "../../services/comfort/helpers";
 
 export interface ShareStateSnapshot {
   version: 6;
@@ -27,6 +28,8 @@ export interface ShareStateSnapshot {
   activeInputId: InputIdType;
   unitSystem: UnitSystemType;
   inputsByInput: Record<InputIdType, Record<FieldKeyType, number>>;
+  dynamicXAxis?: FieldKeyType;
+  dynamicYAxis?: FieldKeyType;
 }
 
 const SHARE_STATE_VERSION = 6;
@@ -84,9 +87,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
+
 /**
  * Parses the inputsByInput object from the ShareStateSnapshot and validates it. This is used when deserializing the share state.
  * @param value The value to parse.
@@ -197,6 +198,24 @@ function parseShareStateSnapshotV6(parsed: Record<string, unknown>): ShareStateS
     return null;
   }
 
+  const validFieldKeys = new Set<FieldKeyType>(Object.values(FieldKey));
+  let dynamicXAxis: FieldKeyType | undefined = undefined;
+  let dynamicYAxis: FieldKeyType | undefined = undefined;
+
+  if (parsed.dynamicXAxis !== undefined) {
+    if (typeof parsed.dynamicXAxis !== "string" || !validFieldKeys.has(parsed.dynamicXAxis as FieldKeyType)) {
+      return null;
+    }
+    dynamicXAxis = parsed.dynamicXAxis as FieldKeyType;
+  }
+
+  if (parsed.dynamicYAxis !== undefined) {
+    if (typeof parsed.dynamicYAxis !== "string" || !validFieldKeys.has(parsed.dynamicYAxis as FieldKeyType)) {
+      return null;
+    }
+    dynamicYAxis = parsed.dynamicYAxis as FieldKeyType;
+  }
+
   return {
     version: SHARE_STATE_VERSION,
     selectedModel: parsed.selectedModel as ComfortModelType,
@@ -206,6 +225,8 @@ function parseShareStateSnapshotV6(parsed: Record<string, unknown>): ShareStateS
     activeInputId: parsed.activeInputId as InputIdType,
     unitSystem: parsed.unitSystem as UnitSystemType,
     inputsByInput,
+    dynamicXAxis,
+    dynamicYAxis,
   };
 }
 
@@ -260,6 +281,8 @@ export function createShareStateSnapshot(state: ComfortToolStateSlice): ShareSta
       }, {} as ShareStateSnapshot["inputsByInput"][typeof inputId]);
       return accumulator;
     }, {} as ShareStateSnapshot["inputsByInput"]),
+    dynamicXAxis: state.ui.dynamicXAxis,
+    dynamicYAxis: state.ui.dynamicYAxis,
   };
 }
 /**
@@ -286,6 +309,32 @@ export function applyShareSnapshotToState(state: ComfortToolStateSlice, snapshot
       state.inputsByInput[inputId][fieldKey] = snapshot.inputsByInput[inputId][fieldKey];
     });
   });
+
+  if (snapshot.dynamicXAxis) {
+    state.ui.dynamicXAxis = snapshot.dynamicXAxis;
+  }
+  if (snapshot.dynamicYAxis) {
+    state.ui.dynamicYAxis = snapshot.dynamicYAxis;
+  }
+
+  // Ensure dynamic axes are valid and unique for the loaded model
+  const config = getComfortModelConfig(snapshot.selectedModel);
+  if (config.dynamicAxisFields && config.dynamicAxisFields.length >= 2) {
+    if (!config.dynamicAxisFields.includes(state.ui.dynamicXAxis as any)) {
+      state.ui.dynamicXAxis = config.dynamicAxisFields[0];
+    }
+
+    if (!config.dynamicAxisFields.includes(state.ui.dynamicYAxis as any)) {
+      state.ui.dynamicYAxis = config.dynamicAxisFields[config.dynamicAxisFields.length - 1];
+    }
+
+    if (state.ui.dynamicXAxis === state.ui.dynamicYAxis) {
+      const fields = config.dynamicAxisFields;
+      const currentIndex = fields.indexOf(state.ui.dynamicYAxis as any);
+      const nextIndex = (currentIndex + 1) % fields.length;
+      state.ui.dynamicYAxis = fields[nextIndex];
+    }
+  }
 }
 
 /**

@@ -4,8 +4,7 @@ import { AdaptiveStandardMode } from "../../../models/inputModes";
 import { FieldKey } from "../../../models/fieldKeys";
 import { InputId } from "../../../models/inputSlots";
 import { UnitSystem } from "../../../models/units";
-import { calculateAdaptive } from "../adaptive";
-import { buildAdaptiveChart, buildAdaptiveDynamicChart } from "./adaptiveCharts";
+import { calculateAdaptive, buildAdaptiveChart, buildAdaptiveDynamicChart } from "../../../comfortModels/adaptive";
 
 const ashraePayload = {
   tdb: 24,
@@ -84,5 +83,51 @@ describe("adaptive charts", () => {
     expect(tooltipLayer?.contours?.coloring).toBe("none");
     expect(visibleContourTraces).toHaveLength(0);
     expect(chart.traces.some((trace) => trace.type === "scatter" && trace.fill === "toself")).toBe(true);
+  });
+
+  it("calculates ASHRAE acceptability correctly at trm = 15°C, to = 25.5°C, v = 0.6 m/s (no cooling effect on 90% bound)", () => {
+    // trm = 15 => tCmf = 0.31 * 15 + 17.8 = 22.45
+    // 90% unadjusted upper limit = 22.45 + 2.5 = 24.95 < 25.0 => ce = 0 => limit = 24.95.
+    // 80% unadjusted upper limit = 22.45 + 3.5 = 25.95 >= 25.0 => ce = 1.2 => limit = 27.15.
+    // Operative temp = 25.5°C is inside 80% limit but outside 90% limit.
+    const result = calculateAdaptive(
+      {
+        tdb: 25.5,
+        tr: 25.5,
+        trm: 15.0,
+        v: 0.6,
+        units: UnitSystem.SI,
+      },
+      AdaptiveStandardMode.Ashrae,
+    );
+
+    expect(result.isCompliant).toBe(true);
+    expect(result.acceptability_80).toBe(true);
+    expect(result.acceptability_90).toBe(false);
+    expect(result.tmp_cmf_90_up).toBeCloseTo(24.95, 2);
+    expect(result.tmp_cmf_80_up).toBeCloseTo(27.15, 2);
+  });
+
+  it("calculates EN acceptability correctly at trm = 12°C, to = 25.2°C, v = 0.6 m/s (no cooling effect on Cat I bound)", () => {
+    // trm = 12 => tCmf = 0.33 * 12 + 18.8 = 22.76
+    // Cat I unadjusted upper limit = 22.76 + 2 = 24.76 < 25.0 => ce = 0 => limit = 24.76.
+    // Cat II unadjusted upper limit = 22.76 + 3 = 25.76 >= 25.0 => ce = 1.2 => limit = 26.96.
+    // Operative temp = 25.2°C is inside Cat II but outside Cat I.
+    const result = calculateAdaptive(
+      {
+        tdb: 25.2,
+        tr: 25.2,
+        trm: 12.0,
+        v: 0.6,
+        units: UnitSystem.SI,
+      },
+      AdaptiveStandardMode.En,
+    );
+
+    expect(result.isCompliant).toBe(true);
+    expect(result.acceptability_cat_i).toBe(false);
+    expect(result.acceptability_cat_ii).toBe(true);
+    expect(result.tmp_cmf_cat_i_up).toBeCloseTo(24.76, 2);
+    expect(result.tmp_cmf_cat_ii_up).toBeCloseTo(26.96, 2);
   });
 });

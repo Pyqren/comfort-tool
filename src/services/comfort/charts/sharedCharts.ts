@@ -4,106 +4,17 @@
  * Contains common chart building functions that are reused across different 
  * comfort models. Provides standardized visualizations for shared parameters (e.g. comfort zones and input points).
  */
-import { inputChartStyleById, inputDisplayMetaById } from "../../../models/inputSlotPresentation";
+import { inputDisplayMetaById } from "../../../models/inputSlotPresentation";
 import { FieldKey } from "../../../models/fieldKeys";
 import { fieldMetaByKey } from "../../../models/inputFieldsMeta";
 import { CalculationSource } from "../../../models/calculationMetadata";
-import type { ComfortPointDto, CompareInputMap, PlotlyChartResponseDto, PlotTraceDto, PlotAnnotationDto } from "../../../models/comfortDtos";
-import { UnitSystem, type UnitSystem as UnitSystemType } from "../../../models/units";
+import type { CompareInputMap, PlotlyChartResponseDto, PlotTraceDto } from "../../../models/comfortDtos";
+import { type UnitSystem as UnitSystemType } from "../../../models/units";
 import { convertFieldValueFromSi, convertFieldValueToSi } from "../../units";
-import { getCompareInputs, roundValue, buildColorscale, type ComfortZonesByInput } from "../helpers";
-import { buildComfortPolygonTrace, buildInputAnnotation, buildInputScatterTrace, buildContourTrace } from "./plotlyBuilders";
-import { buildComfortZonePolygon } from "./pmvCharts";
+import { getCompareInputs, buildColorscale } from "../helpers";
+import { buildInputScatterTrace, buildContourTrace } from "./plotlyBuilders";
 import { ThermalZone } from "../../../models/thermalZone";
 import type { InputId as InputIdType } from "../../../models/inputSlots";
-
-/**
- * Builds the Relative Humidity chart.
- * @param payload - The comfort inputs.
- * @param comfortZonesByInput - The comfort zones.
- * @param unitSystem - The unit system.
- * @returns The comfort chart response DTO.
- */
-export function buildRelativeHumidityChart(
-  payload: { inputs: CompareInputMap<ComfortPointDto> },
-  comfortZonesByInput: ComfortZonesByInput = {},
-  unitSystem: UnitSystemType = UnitSystem.SI,
-): PlotlyChartResponseDto {
-  const inputs = getCompareInputs(payload.inputs);
-  const showInputLegend = inputs.length > 1;
-  const traces: PlotTraceDto[] = [];
-  const annotations: PlotAnnotationDto[] = [];
-  const temperatureDisplayUnits = fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem];
-
-  // Add traces for each input.
-  inputs.forEach(({ inputId, payload: inputPayload }) => {
-    // Get the input meta data.
-    const inputMeta = inputDisplayMetaById[inputId];
-    // Get the comfort zone.
-    const comfortZone = comfortZonesByInput[inputId];
-    // Build the comfort zone polygon.
-    const { polygonX, polygonY } = buildComfortZonePolygon(
-      /*
-        The polygon is built using the cool and warm edges of the comfort zone.
-        The edges are arrays of comfort points.
-        The points are converted to the display units using the convertFieldValueFromSi function.
-      */
-      comfortZone?.coolEdge || [],
-      comfortZone?.warmEdge || [],
-      (point) => roundValue(convertFieldValueFromSi(FieldKey.DryBulbTemperature, point.tdb, unitSystem)),
-      (point) => roundValue(point.rh),
-    );
-
-    if (polygonX.length > 0) {
-      // Add the comfort zone polygon trace.
-      traces.push(buildComfortPolygonTrace({
-        inputId,
-        nameSuffix: "RH comfort zone",
-        polygonX,
-        polygonY,
-        hovertemplate: `Tdb %{x:.1f} ${temperatureDisplayUnits}<br>RH %{y:.0f}%<extra></extra>`,
-        isComfortZone: true,
-      }));
-    }
-    // Add the input scatter trace.
-    traces.push(buildInputScatterTrace({
-      inputId,
-      x: roundValue(convertFieldValueFromSi(FieldKey.DryBulbTemperature, inputPayload.tdb, unitSystem)),
-      y: roundValue(inputPayload.rh),
-      showLegend: showInputLegend,
-      hovertemplate: `${inputMeta.label}<br>Tdb %{x:.1f} ${temperatureDisplayUnits}<br>RH %{y:.0f}%<extra></extra>`,
-    }));
-  });
-
-  // Return the comfort chart response DTO.
-  return {
-    traces,
-    layout: {
-      title: "Relative humidity chart",
-      paper_bgcolor: "#ffffff",
-      plot_bgcolor: "#f8fafc",
-      showlegend: showInputLegend,
-      margin: { l: 56, r: 24, t: 48, b: 56 },
-      xaxis: {
-        title: `Dry bulb temperature (${temperatureDisplayUnits})`,
-        range: [
-          convertFieldValueFromSi(FieldKey.DryBulbTemperature, 10, unitSystem),
-          convertFieldValueFromSi(FieldKey.DryBulbTemperature, 40, unitSystem),
-        ],
-        gridcolor: "#e2e8f0",
-      },
-      yaxis: {
-        title: "Relative humidity (%)",
-        range: [0, 100],
-        gridcolor: "#e2e8f0",
-      },
-      legend: { orientation: "h", x: 0, y: 1.1 },
-      height: 480,
-    },
-    annotations,
-    source: CalculationSource.FrontendGenerated,
-  };
-}
 
 /**
  * Builds a generic range chart for thermal indices, creating a 2D contour chart 
@@ -131,7 +42,7 @@ function buildStaticContourChart(
     getHovertemplateScatter: (inputLabel: string, cached: any) => string;
     getScatterXSi: (payload: any) => number;
     getScatterYSi: (payload: any) => number;
-    calculatePoint: (xSi: number, ySi: number) => { rangeValue: number; category: string };
+    calculatePoint: (xSi: number, ySi: number) => { rangeValue: number; category: string; hovertext?: string };
   }
 ): PlotlyChartResponseDto {
   const inputs = getCompareInputs(inputsMap);
@@ -164,9 +75,9 @@ function buildStaticContourChart(
     for (let j = 0; j < xPoints; j++) {
       const xSi = convertFieldValueToSi(config.xKey, xValues[j], unitSystem);
       try {
-        const { rangeValue, category } = config.calculatePoint(xSi, ySi);
+        const { rangeValue, category, hovertext } = config.calculatePoint(xSi, ySi);
         row.push(rangeValue);
-        textRow.push(category);
+        textRow.push(hovertext || category);
       } catch {
         row.push(NaN);
         textRow.push("Error");
@@ -228,7 +139,7 @@ function buildStaticContourChart(
     const cached = cachedResultsByInput[input.inputId];
     const xVal = convertFieldValueFromSi(config.xKey, config.getScatterXSi(input.payload), unitSystem);
     const yVal = convertFieldValueFromSi(config.yKey, config.getScatterYSi(input.payload), unitSystem);
-    
+
     traces.push(
       buildInputScatterTrace({
         inputId: input.inputId,
@@ -270,8 +181,9 @@ function buildDynamicContourChart(
     zMax: number;
     colorscale: any[][];
     getRange: (key: FieldKey) => { min: number; max: number };
-    calculatePoint: (xSi: number, ySi: number, dynamicXAxis: FieldKey, dynamicYAxis: FieldKey) => { rangeValue: number; category: string };
+    calculatePoint: (xSi: number, ySi: number, dynamicXAxis: FieldKey, dynamicYAxis: FieldKey) => { rangeValue: number; category: string; hovertext?: string };
     getHovertemplateScatter: (inputLabel: string, cached: any) => string;
+    hovertemplateContour?: string;
   }
 ): PlotlyChartResponseDto {
   const inputs = getCompareInputs(inputsMap);
@@ -324,9 +236,9 @@ function buildDynamicContourChart(
     for (let j = 0; j < xPoints; j++) {
       const xSi = convertFieldValueToSi(dynamicXAxis, xValues[j], unitSystem);
       try {
-        const { rangeValue, category } = config.calculatePoint(xSi, ySi, dynamicXAxis, dynamicYAxis);
+        const { rangeValue, category, hovertext } = config.calculatePoint(xSi, ySi, dynamicXAxis, dynamicYAxis);
         row.push(rangeValue);
-        textRow.push(category);
+        textRow.push(hovertext || category);
       } catch {
         row.push(NaN);
         textRow.push("Error");
@@ -356,7 +268,7 @@ function buildDynamicContourChart(
         smoothing: 1.3,
         line: { width: 1, color: "#333333" },
       },
-      hovertemplate: `${xMeta.label}: %{x:.1f} ${xMeta.displayUnits[unitSystem]}<br>${yMeta.label}: %{y:.1f} ${yMeta.displayUnits[unitSystem]}<br><b>Zone: %{text}</b><extra></extra>`,
+      hovertemplate: config.hovertemplateContour || `${xMeta.label}: %{x:.1f} ${xMeta.displayUnits[unitSystem]}<br>${yMeta.label}: %{y:.1f} ${yMeta.displayUnits[unitSystem]}<br><b>Zone: %{text}</b><extra></extra>`,
       showscale: false,
       isBackgroundZone: true,
     }),
@@ -430,9 +342,10 @@ export interface ModelChartConfig {
   zones: ThermalZone[];
   customRanges?: Partial<Record<FieldKey, { min: number; max: number }>>;
   baselinePayloadDefault: any;
-  calculateDynamicPoint: (xSi: number, ySi: number, dynamicXAxis: FieldKey, dynamicYAxis: FieldKey, baselinePayload: any) => { rangeValue: number; category: string };
+  calculateDynamicPoint: (xSi: number, ySi: number, dynamicXAxis: FieldKey, dynamicYAxis: FieldKey, baselinePayload: any) => { rangeValue: number; category: string; hovertext?: string };
   getHovertemplateScatterDynamic: (label: string, cached: any) => string;
-  
+  hovertemplateContourDynamic?: string;
+
   // Static ranges chart config (optional)
   staticConfig?: {
     title: string;
@@ -444,7 +357,7 @@ export interface ModelChartConfig {
     getHovertemplateScatter: (label: string, cached: any) => string;
     getScatterXSi: (payload: any) => number;
     getScatterYSi: (payload: any) => number;
-    calculateStaticPoint: (xSi: number, ySi: number) => { rangeValue: number; category: string };
+    calculateStaticPoint: (xSi: number, ySi: number) => { rangeValue: number; category: string; hovertext?: string };
   };
 }
 
@@ -484,6 +397,7 @@ export function buildComfortModelChart(
           return config.calculateDynamicPoint(xSi, ySi, dynamicXAxis, dynamicYAxis, baselinePayload);
         },
         getHovertemplateScatter: config.getHovertemplateScatterDynamic,
+        hovertemplateContour: config.hovertemplateContourDynamic,
       }
     );
   }

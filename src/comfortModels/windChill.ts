@@ -16,7 +16,7 @@ import type { CompareInputMap } from "../models/comfortDtos";
 import { buildDefaultPresentation, createControlBehavior, createTemperatureControlBehavior } from "../services/comfort/controls/controlBehaviors";
 import { roundValue } from "../services/comfort/helpers";
 import { buildComfortModelChart } from "../services/comfort/charts/sharedCharts";
-import { calculateWindChillIndex, calculateWindChillTemperature } from "../services/comfort/windChill";
+import { wc, wind_chill_temperature } from "jsthermalcomfort";
 import { convertFieldValueFromSi, formatDisplayValue } from "../services/units/index";
 import { ComfortModelBuilder, isRecord, createEmptyResults, buildResultSection } from "../state/comfortTool/modelConfigs/builder";
 
@@ -50,6 +50,9 @@ const WCI_UNITS = {
 // Specifically, 1 W/m² = 0.316998 BTU/(h·ft²).
 const WCI_CONVERSION_FACTOR = 0.316998;
 
+// Converts Wind Chill Temperature (WCT) from km/h to m/s (required for passing to JsThermalComfort library).
+const WCT_CONVERSION_FACTOR = 3.6;
+
 // ── Data Transfer Object (DTOs) ────────────────────────────────────────────────────────
 export interface WindChillRequestDto {
   tdb: number;
@@ -80,13 +83,13 @@ export function calculateWindChill(payload: WindChillRequestDto): WindChillRespo
   const tdbSi = payload.tdb;
   const vSi = payload.v;
 
-  const wci = calculateWindChillIndex(tdbSi, vSi);
+  const wci = wc(tdbSi, vSi).wci;
 
   // Calculate equivalent Wind Chill Temperature
   // Only applied if wind speed is greater than 1.33 m/s and temperature is less than or equal to 10 Celsius
   let wciTemp: number | undefined = undefined;
   if (vSi > 1.33 && tdbSi <= 10) {
-    wciTemp = calculateWindChillTemperature(tdbSi, vSi);
+    wciTemp = wind_chill_temperature(tdbSi, vSi * WCT_CONVERSION_FACTOR).wct;
   } else {
     wciTemp = tdbSi;
   }
@@ -108,7 +111,7 @@ export function calculateWindChill(payload: WindChillRequestDto): WindChillRespo
 function toWindChillRequest(state: any, inputId: InputIdType): WindChillRequestDto {
   const inputs = state.inputsByInput[inputId];
   const v = Number(inputs[FieldKey.WindSpeed]);
-    
+
   return {
     tdb: Number(inputs[FieldKey.DryBulbTemperature]),
     v: isNaN(v) ? WIND_LIMITS.min : v,
@@ -186,7 +189,7 @@ windChillBuilder.setResultBuilder((results, visibleInputIds, unitSystem) => {
   return [
     buildResultSection(`${comfortModelMetaById[ComfortModel.WindChill].label} Index`, results, visibleInputIds, (result) => {
       if (result.wci === undefined) return null;
-      
+
       const displayValue = unitSystem === UnitSystem.SI ? result.wci : result.wci * WCI_CONVERSION_FACTOR;
       const formattedValue = formatDisplayValue(displayValue, 0);
       const wciUnit = WCI_UNITS[unitSystem];
@@ -235,20 +238,43 @@ windChillBuilder.setChartBuilder((chartId, chartSource, resultsByInput, unitSyst
       calcPayload[dynamicXAxis] = xSi;
       calcPayload[dynamicYAxis] = ySi;
 
-      const wci = calculateWindChillIndex(calcPayload.tdb, calcPayload.v);
-      
+      const wci = wc(calcPayload.tdb, calcPayload.v).wci;
+
+      // Only applied if wind speed is greater than 1.33 m/s and temperature is less than or equal to 10 Celsius
+      let wciTemp: number;
+      if (calcPayload.v > 1.33 && calcPayload.tdb <= 10) {
+        wciTemp = wind_chill_temperature(calcPayload.tdb, calcPayload.v * WCT_CONVERSION_FACTOR).wct;
+      } else {
+        wciTemp = calcPayload.tdb;
+      }
+
       const zone = windChillZonesList.find((z) => z.contains(wci));
       const rangeValue = zone ? windChillZonesList.indexOf(zone) : 0;
-      
-      return { rangeValue, category: zone ? zone.label : windChillZonesList[0].label };
+      const zoneLabel = zone ? zone.label : windChillZonesList[0].label;
+
+      const wciVal = unitSystem === UnitSystem.SI ? wci : wci * WCI_CONVERSION_FACTOR;
+      const wciUnit = WCI_UNITS[unitSystem];
+      const modelLabel = comfortModelMetaById[ComfortModel.WindChill].label;
+
+      const xMeta = fieldMetaByKey[dynamicXAxis as FieldKey];
+      const yMeta = fieldMetaByKey[dynamicYAxis as FieldKey];
+      const xVal = convertFieldValueFromSi(dynamicXAxis as FieldKey, xSi, unitSystem);
+      const yVal = convertFieldValueFromSi(dynamicYAxis as FieldKey, ySi, unitSystem);
+      const wctDisp = convertFieldValueFromSi(FieldKey.DryBulbTemperature, wciTemp, unitSystem);
+
+      const hovertext = `${xMeta?.label}: ${roundValue(xVal, 1)} ${xMeta?.displayUnits[unitSystem]}<br>${yMeta?.label}: ${roundValue(yVal, 1)} ${yMeta?.displayUnits[unitSystem]}<br><b>Frostbite Risk: ${zoneLabel}</b><br>${modelLabel} Index: ${roundValue(wciVal, 0)} ${wciUnit}<br>${modelLabel} Temperature: ${roundValue(wctDisp, 1)} ${fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem]}`;
+
+      return { rangeValue, category: zoneLabel, hovertext };
     },
     getHovertemplateScatterDynamic: (label, cached) => {
-      const wciVal = unitSystem === UnitSystem.SI 
-        ? cached?.wci 
+      const wciVal = unitSystem === UnitSystem.SI
+        ? cached?.wci
         : (cached?.wci !== undefined ? cached.wci * WCI_CONVERSION_FACTOR : undefined);
       const wciUnit = WCI_UNITS[unitSystem];
-      return `${label}<br>${fieldMetaByKey[chartSource.dynamicXAxis as FieldKey]?.label}: %{x:.2f}<br>${fieldMetaByKey[chartSource.dynamicYAxis as FieldKey]?.label}: %{y:.2f}<br><b>Frostbite Risk: ${cached?.wciZone || ""}</b><br>Wind Chill Index: ${wciVal !== undefined ? roundValue(wciVal, 0) : ""} ${wciUnit}<br>Wind Chill Temperature: ${roundValue(convertFieldValueFromSi(FieldKey.DryBulbTemperature, cached?.wciTemp, unitSystem), 1)}${fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem]}<extra></extra>`;
+      const modelLabel = comfortModelMetaById[ComfortModel.WindChill].label;
+      return `${label}<br>${fieldMetaByKey[chartSource.dynamicXAxis as FieldKey]?.label}: %{x:.2f}<br>${fieldMetaByKey[chartSource.dynamicYAxis as FieldKey]?.label}: %{y:.2f}<br><b>Frostbite Risk: ${cached?.wciZone || ""}</b><br>${modelLabel} Index: ${wciVal !== undefined ? roundValue(wciVal, 0) : ""} ${wciUnit}<br>${modelLabel} Temperature: ${roundValue(convertFieldValueFromSi(FieldKey.DryBulbTemperature, cached?.wciTemp, unitSystem), 1)}${fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem]}<extra></extra>`;
     },
+    hovertemplateContourDynamic: "%{text}<extra></extra>",
   });
 });
 

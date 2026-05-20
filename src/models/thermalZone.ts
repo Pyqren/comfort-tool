@@ -6,6 +6,7 @@
 export interface ThermalZoneConfig {
   id?: string;
   label: string;
+  legendText?: string; // An optional abbreviated label for compact display contexts (e.g., chart annotations).
   min?: number;
   max?: number;
   color: string;
@@ -17,6 +18,7 @@ export interface ThermalZoneConfig {
 export class ThermalZone {
   public readonly id?: string;
   public readonly label: string;
+  public readonly legendText?: string;
   public readonly min: number;
   public readonly max: number;
   public readonly color: string;
@@ -27,6 +29,7 @@ export class ThermalZone {
   constructor(config: ThermalZoneConfig) {
     this.id = config.id;
     this.label = config.label;
+    this.legendText = config.legendText;
     this.min = config.min ?? -Infinity;
     this.max = config.max ?? Infinity;
     this.color = config.color;

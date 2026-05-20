@@ -12,12 +12,9 @@
   } from "../../models/chartOptions";
   import type { ComfortModel as ComfortModelType } from "../../models/comfortModels";
   import { ComfortModel } from "../../models/comfortModels";
-  import {
-    adaptiveAshraeZones,
-    adaptiveEnZones,
-    pmvZones,
-    utciStressBands,
-  } from "../../services/comfort/helpers";
+  import { pmvZonesList } from "../../comfortModels/pmv";
+  import { utciZonesList } from "../../comfortModels/utci";
+  import { adaptiveAshraeZonesList, adaptiveEnZonesList } from "../../comfortModels/adaptive";
   import { heatIndexZonesList } from "../../comfortModels/heatIndex";
   import { humidexZonesList } from "../../comfortModels/humidex";
   import { windChillZonesList } from "../../comfortModels/windChill";
@@ -37,10 +34,7 @@
     selectedModel,
   }: Props = $props();
 
-  const utciZones = utciStressBands.map((band) => ({
-    label: band.label,
-    color: band.color,
-  }));
+  const utciZones = utciZonesList;
 
   const isPmvChart = $derived(
     selectedChart === ChartId.Psychrometric ||
@@ -76,7 +70,7 @@
 {/snippet}
 
 {#if isPmvChart}
-  {@render legendSection("PMV Zones", pmvZones)}
+  {@render legendSection("PMV Zones", pmvZonesList)}
 {/if}
 
 {#if isUtciChart}
@@ -98,6 +92,6 @@
 {#if selectedChart === ChartId.Adaptive || selectedChart === ChartId.AdaptiveDynamic}
   {@render legendSection(
     "Adaptive Zones",
-    selectedModel === ComfortModel.AdaptiveAshrae ? adaptiveAshraeZones : adaptiveEnZones,
+    selectedModel === ComfortModel.AdaptiveAshrae ? adaptiveAshraeZonesList : adaptiveEnZonesList,
   )}
 {/if}
