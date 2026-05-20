@@ -27,7 +27,7 @@ import type { OptionKey as OptionKeyType } from "../../models/inputModes";
 import { UnitSystem } from "../../models/units";
 import type { BehaviorPatch, ControlBehaviorContext } from "../../services/comfort/controls/types";
 import { deriveInputsDerivedState } from "../../services/comfort/syncState";
-import { comfortModelConfigs, getComfortModelConfig } from "./modelConfigs";
+import { comfortModelConfigs, getComfortModelConfig, type ComfortModelDefinition } from "./modelConfigs";
 import { createCalculationManager } from "./calculationManager.svelte";
 import {
   applyShareSnapshotToState,
@@ -223,8 +223,8 @@ export function createComfortToolState(): ComfortToolController {
     };
   }
 
-  function getActiveModelConfig() {
-    return getComfortModelConfig(state.ui.selectedModel);
+  function getActiveModelConfig(): ComfortModelDefinition<any, any> {
+    return getComfortModelConfig(state.ui.selectedModel) as ComfortModelDefinition<any, any>;
   }
 
   function getCurrentSelectedChartId() {
@@ -300,8 +300,7 @@ export function createComfortToolState(): ComfortToolController {
         return [];
       }
 
-      // todo AI Same problem: the generic type parameters are lost here so we cast to any. A generic ModelCalculationCache would fix this.
-      return (getActiveModelConfig() as any).buildResultSections(
+      return getActiveModelConfig().buildResultSections(
         cache.resultsByInput,
         getVisibleInputIds(),
         state.ui.unitSystem,
@@ -311,8 +310,7 @@ export function createComfortToolState(): ComfortToolController {
     },
     getCurrentChartResult: () => {
       const cache = getCurrentModelCache();
-      // todo AI Same problem as above.
-      return (getActiveModelConfig() as any).buildChartResult(
+      return getActiveModelConfig().buildChartResult(
         getCurrentSelectedChartId(),
         cache.chartSource,
         cache.resultsByInput,
