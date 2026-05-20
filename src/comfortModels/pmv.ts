@@ -60,9 +60,9 @@ import { buildComfortPolygonTrace, buildInputScatterTrace, buildLineTrace, build
 export const PMV_COMFORT_LIMIT = 0.5;
 
 // These exact bounds are used as a search bracket for finding PMV roots (comfort zone boundaries).
-const COMFORT_ZONE_MIN_DRY_BULB = 10;
-const COMFORT_ZONE_MAX_DRY_BULB = 40;
-const ROOT_SCAN_POINTS = 81;
+const COMFORT_ZONE_MIN_DRY_BULB = -20;
+const COMFORT_ZONE_MAX_DRY_BULB = 80;
+const ROOT_SCAN_POINTS = 101;
 const ROOT_REFINE_POINTS = 7;
 const ROOT_MAX_REFINEMENTS = 9;
 const ROOT_TOLERANCE = 5e-4;
@@ -253,21 +253,6 @@ function findTemperatureBracket(
         ),
         units: UnitSystem.SI,
       };
-
-    const complianceWarnings = check_standard_compliance(JsThermalComfortStandard.ASHRAE, {
-      tdb: normalizedPayload.tdb,
-      tr: normalizedPayload.tr,
-      v: normalizedPayload.vr,
-      met: normalizedPayload.met,
-      clo: normalizedPayload.clo,
-      airspeed_control: normalizedPayload.occupantHasAirSpeedControl,
-    } as any);
-
-    if (complianceWarnings.length > 0) {
-      previousTemperature = null;
-      previousDelta = null;
-      continue;
-    }
 
     const pmv = pmv_ppd_ashrae(
       normalizedPayload.tdb,
