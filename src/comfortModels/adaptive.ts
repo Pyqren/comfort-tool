@@ -169,7 +169,7 @@ export interface AdaptiveChartInputsRequestDto {
 
 export interface AdaptiveChartSourceDto {
   chartRequest: AdaptiveChartInputsRequestDto;
-  resultsByInput: CompareInputMap<AdaptiveResponseDto>;
+  resultsByInput: Record<InputIdType, AdaptiveResponseDto | null>;
   standardMode: string;
   dynamicXAxis?: string;
   dynamicYAxis?: string;
@@ -649,9 +649,9 @@ function getAdaptiveTemperatureBoundaries(
   standardMode: AdaptiveStandardMode,
 ): number[] {
   const tCmf = getAdaptiveBaseTemperature(trm, standardMode);
-  const coeffs = standardMode === AdaptiveStandardMode.Ashrae ? ADAPTIVE_COEFFICIENTS.ASHRAE : ADAPTIVE_COEFFICIENTS.EN;
 
   if (standardMode === AdaptiveStandardMode.Ashrae) {
+    const coeffs = ADAPTIVE_COEFFICIENTS.ASHRAE;
     return [
       tCmf + coeffs.OFFSETS_COOL[1],
       tCmf + coeffs.OFFSETS_COOL[0],
@@ -660,6 +660,7 @@ function getAdaptiveTemperatureBoundaries(
     ];
   }
 
+  const coeffs = ADAPTIVE_COEFFICIENTS.EN;
   return [
     tCmf + coeffs.OFFSETS_COOL[2],
     tCmf + coeffs.OFFSETS_COOL[1],
@@ -676,9 +677,6 @@ function getOutdoorTemperatureBoundaries(
   standardMode: AdaptiveStandardMode,
 ): number[] {
   const ce = getCe(v, to);
-  const coeffs = standardMode === AdaptiveStandardMode.Ashrae ? ADAPTIVE_COEFFICIENTS.ASHRAE : ADAPTIVE_COEFFICIENTS.EN;
-  const slope = coeffs.SLOPE;
-  const intercept = coeffs.INTERCEPT;
 
   // Derived by solving the standard boundary equations for the prevailing/running mean outdoor temperature (trm)
   // given a target operative temperature (to). 
@@ -688,6 +686,9 @@ function getOutdoorTemperatureBoundaries(
   //   to = slope * trm + intercept + offset       =>  trm = (to - offset - intercept) / slope
 
   if (standardMode === AdaptiveStandardMode.Ashrae) {
+    const coeffs = ADAPTIVE_COEFFICIENTS.ASHRAE;
+    const slope = coeffs.SLOPE;
+    const intercept = coeffs.INTERCEPT;
     return [
       (to + coeffs.OFFSETS_COOL[1] - ce - intercept) / slope,
       (to + coeffs.OFFSETS_COOL[0] - ce - intercept) / slope,
@@ -696,6 +697,9 @@ function getOutdoorTemperatureBoundaries(
     ];
   }
 
+  const coeffs = ADAPTIVE_COEFFICIENTS.EN;
+  const slope = coeffs.SLOPE;
+  const intercept = coeffs.INTERCEPT;
   return [
     (to + coeffs.OFFSETS_COOL[2] - ce - intercept) / slope,
     (to + coeffs.OFFSETS_COOL[1] - ce - intercept) / slope,
@@ -1272,7 +1276,7 @@ export function buildAdaptiveDynamicChart(
     };
   }
 
-  const activeInputPayload = (payload.inputs[baselineInputId as any] || inputs[0]?.payload);
+  const activeInputPayload = (payload.inputs[baselineInputId as InputIdType] || inputs[0]?.payload);
 
   const xMeta = fieldMetaByKey[dynamicXAxis];
   const yMeta = fieldMetaByKey[dynamicYAxis];
@@ -1857,6 +1861,9 @@ function createAdaptiveModelConfig(modelId: ComfortModel, standardMode: Adaptive
   });
 
   builder.setZones(isAshrae ? adaptiveAshraeZonesList : adaptiveEnZonesList);
+  builder.setLegendChartIds([ChartId.Adaptive, ChartId.AdaptiveDynamic]);
+  builder.setLegendTitle("Adaptive Zones");
+  builder.setLockYAxisChartIds([]);
 
   return builder.build();
 }

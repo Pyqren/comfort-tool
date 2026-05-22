@@ -188,7 +188,7 @@ windChillBuilder.setResultBuilder((results, visibleInputIds, unitSystem) => {
   const temperatureUnits = fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem];
   return [
     buildResultSection(`${comfortModelMetaById[ComfortModel.WindChill].label} Index`, results, visibleInputIds, (result) => {
-      if (result.wci === undefined) return null;
+      if (result.wci === undefined) return { text: "" };
 
       const displayValue = unitSystem === UnitSystem.SI ? result.wci : result.wci * WCI_CONVERSION_FACTOR;
       const formattedValue = formatDisplayValue(displayValue, 0);
@@ -204,7 +204,7 @@ windChillBuilder.setResultBuilder((results, visibleInputIds, unitSystem) => {
       };
     }),
     buildResultSection(`${comfortModelMetaById[ComfortModel.WindChill].label} Temperature`, results, visibleInputIds, (result) => {
-      if (result.wciTemp === undefined) return null;
+      if (result.wciTemp === undefined) return { text: "" };
       const displayValue = convertFieldValueFromSi(FieldKey.DryBulbTemperature, result.wciTemp, unitSystem);
       const formattedValue = formatDisplayValue(displayValue, 1);
 
@@ -267,6 +267,7 @@ windChillBuilder.setChartBuilder((chartId, chartSource, resultsByInput, unitSyst
       return { rangeValue, category: zoneLabel, hovertext };
     },
     getHovertemplateScatterDynamic: (label, cached) => {
+      if (!chartSource) return "";
       const wciVal = unitSystem === UnitSystem.SI
         ? cached?.wci
         : (cached?.wci !== undefined ? cached.wci * WCI_CONVERSION_FACTOR : undefined);
@@ -286,6 +287,9 @@ windChillBuilder.setDynamicAxisFields([FieldKey.DryBulbTemperature, FieldKey.Win
 windChillBuilder.setDefaultOptions({});
 windChillBuilder.setOptionNormalizer((value) => isRecord(value) ? value : {});
 windChillBuilder.setZones(windChillZonesList);
+windChillBuilder.setLegendChartIds([ChartId.WindChillDynamic]);
+windChillBuilder.setLegendTitle("Wind Chill");
+windChillBuilder.setLockYAxisChartIds([ChartId.WindChillDynamic]);
 
 /**
  * Builds the final Wind Chill model configuration.

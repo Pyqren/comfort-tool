@@ -3,8 +3,7 @@
  * @description Configuration, calculation, and charting service for the PMV (Predicted Mean Vote) comfort model.
  */
 
-import { pmv_ppd_ashrae, pmv_ppd, units_converter, psy_ta_rh, p_sat, t_o } from "jsthermalcomfort";
-import { check_standard_compliance } from "jsthermalcomfort/lib/esm/utilities/utilities.js";
+import { pmv_ppd_ashrae, pmv_ppd, units_converter, psy_ta_rh, p_sat, t_o, check_standard_compliance } from "jsthermalcomfort";
 
 export { pmv_ppd_ashrae };
 
@@ -633,7 +632,11 @@ export function buildComfortZonePolygon(
   };
 }
 
-function getComfortZoneForInput(inputId, payload, comfortZonesByInput: Record<string, any>) {
+function getComfortZoneForInput(
+  inputId: InputIdType,
+  payload: ComfortZoneRequestDto,
+  comfortZonesByInput: Record<string, any>
+): ComfortZoneResponseDto {
   return comfortZonesByInput[inputId] ?? calculateComfortZone(payload);
 }
 
@@ -684,16 +687,32 @@ export function buildComparePsychrometricChart(
         const pAtm = STANDARD_ATM_PRESSURE_PA;
         const pVap = (hr * pAtm) / (WATER_VAPOR_MOLECULAR_WEIGHT_RATIO + hr);
         const pSaturation = p_sat(tdb);
-        const rh = Math.min(100, Math.max(0, (pVap / pSaturation) * 100));
-        try {
-          const pmvResult = pmv_ppd(tdb, activeInputPayload.tr, activeInputPayload.vr, rh, activeInputPayload.met, activeInputPayload.clo, activeInputPayload.wme, JsThermalComfortStandard.ASHRAE, { limit_inputs: false });
-          row.push(pmvResult.pmv);
-          textRow.push(getPmvZoneMeta(pmvResult.pmv).label);
-          hoverMetadataRow.push([pmvResult.ppd]);
-        } catch {
+        if (pVap > pSaturation) {
           row.push(NaN);
           textRow.push("");
           hoverMetadataRow.push([NaN]);
+        } else {
+          const rh = Math.max(0, (pVap / pSaturation) * 100);
+          try {
+            const pmvResult = pmv_ppd(
+              tdb,
+              activeInputPayload.tr,
+              activeInputPayload.vr,
+              rh,
+              activeInputPayload.met,
+              activeInputPayload.clo,
+              activeInputPayload.wme,
+              JsThermalComfortStandard.ASHRAE,
+              { limit_inputs: false },
+            );
+            row.push(pmvResult.pmv);
+            textRow.push(getPmvZoneMeta(pmvResult.pmv).label);
+            hoverMetadataRow.push([pmvResult.ppd]);
+          } catch {
+            row.push(NaN);
+            textRow.push("");
+            hoverMetadataRow.push([NaN]);
+          }
         }
       }
       zValues.push(row);
@@ -1126,6 +1145,9 @@ export const pmvModelConfig = new ComfortModelBuilder<PmvResponseDto, PmvChartSo
       fieldKey: FieldKey.MetabolicRate,
       presetOptions: metabolicPresetOptions,
       applyInput: (context, inputId, nextValue) => {
+        if (nextValue === null) {
+          return null;
+        }
         const nextInputState = Object.assign({}, context.inputsByInput[inputId]);
         nextInputState[FieldKey.MetabolicRate] = nextValue;
 
@@ -1226,4 +1248,7 @@ export const pmvModelConfig = new ComfortModelBuilder<PmvResponseDto, PmvChartSo
     return buildPmvChartResult(chartId, chartSource, unitSystem);
   })
   .setZones(pmvZonesList)
+  .setLegendChartIds([ChartId.Psychrometric, ChartId.PmvDynamic])
+  .setLegendTitle("PMV Zones")
+  .setLockYAxisChartIds([])
   .build();

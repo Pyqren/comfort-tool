@@ -76,7 +76,9 @@ export class ComfortModelBuilder<ResultType, ChartSourceType> {
     controls: [],
     optionHandlersByKey: {},
     zones: [],
-    toneToClass: {},
+    legendChartIds: [],
+    legendTitle: "",
+    lockYAxisChartIds: [],
   };
 
   /**
@@ -200,11 +202,29 @@ export class ComfortModelBuilder<ResultType, ChartSourceType> {
   }
 
   /**
-   * Defines the mapping between tone keys and UI CSS classes.
-   * @param map Record mapping tone keys to CSS utility class strings.
+   * Defines the chart IDs for which this model shows a zone legend.
+   * @param chartIds Array of ChartId values.
    */
-  setToneToClass(map: Record<string, string>): this {
-    this.config.toneToClass = map;
+  setLegendChartIds(chartIds: ChartIdType[]): this {
+    this.config.legendChartIds = chartIds;
+    return this;
+  }
+
+  /**
+   * Sets the display title for the legend.
+   * @param title Title string.
+   */
+  setLegendTitle(title: string): this {
+    this.config.legendTitle = title;
+    return this;
+  }
+
+  /**
+   * Defines the chart IDs that lock the dynamic Y-axis.
+   * @param chartIds Array of ChartId values.
+   */
+  setLockYAxisChartIds(chartIds: ChartIdType[]): this {
+    this.config.lockYAxisChartIds = chartIds;
     return this;
   }
 

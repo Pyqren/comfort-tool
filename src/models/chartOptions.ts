@@ -40,7 +40,6 @@ export interface ChartMetadata {
   emptyMessage: string;
   heightClass: string;
   isDynamic?: boolean; // optional, defaults to false
-  lockYAxis?: boolean; // optional, defaults to false
 }
 
 export const chartMetaById: Record<ChartId, ChartMetadata> = {
@@ -87,7 +86,6 @@ export const chartMetaById: Record<ChartId, ChartMetadata> = {
     emptyMessage: "No dynamic chart yet.",
     heightClass: "h-[480px] xl:h-[480px]",
     isDynamic: true,
-    lockYAxis: true,
   },
   [ChartId.Humidex]: {
     name: "Psychrometric",
@@ -99,13 +97,11 @@ export const chartMetaById: Record<ChartId, ChartMetadata> = {
     emptyMessage: "No dynamic chart yet.",
     heightClass: "h-[480px] xl:h-[480px]",
     isDynamic: true,
-    lockYAxis: true,
   },
   [ChartId.WindChillDynamic]: {
     name: "Dynamic",
     emptyMessage: "No dynamic chart yet.",
     heightClass: "h-[480px] xl:h-[480px]",
     isDynamic: true,
-    lockYAxis: true,
   },
 };

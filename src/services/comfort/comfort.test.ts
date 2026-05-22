@@ -10,7 +10,7 @@ import {
   deriveRelativeAirSpeedFromMeasured,
   deriveRelativeHumidityFromDewPoint,
 } from "./derivations";
-import { check_standard_compliance } from "jsthermalcomfort/lib/esm/utilities/utilities.js";
+import { check_standard_compliance } from "jsthermalcomfort";
 import {
   synchronizeControlInputState,
 } from "./syncState";
@@ -261,7 +261,7 @@ describe("comfort services", () => {
         ...inputDefaultsById[InputId.Input1],
         [FieldKey.DryBulbTemperature]: 26,
         [FieldKey.MetabolicRate]: 1.8,
-      },
+      } as any,
       {
         [OptionKey.AirSpeedInputMode]: AirSpeedInputMode.Measured,
         [OptionKey.HumidityInputMode]: HumidityInputMode.DewPoint,

@@ -61,6 +61,9 @@
           compareEnabled={toolState.state.ui.compareEnabled}
           onSelectXAxis={toolState.actions.setDynamicXAxis}
           onSelectYAxis={toolState.actions.setDynamicYAxis}
+          lockYAxis={toolState.selectors.getCurrentChartLockYAxis()}
+          legendZones={toolState.selectors.getCurrentChartLegendZones()}
+          legendTitle={toolState.selectors.getCurrentChartLegendTitle()}
           embedded={true}
         />
       </Card>

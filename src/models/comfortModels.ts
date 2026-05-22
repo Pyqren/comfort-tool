@@ -28,16 +28,6 @@ export const ComplianceStatus = {
 
 export type ComplianceStatus = (typeof ComplianceStatus)[keyof typeof ComplianceStatus];
 
-// The order in which the comfort models are displayed in the dropdown.
-export const comfortModelOrder: ComfortModel[] = [
-  ComfortModel.Pmv,
-  ComfortModel.Utci,
-  ComfortModel.AdaptiveAshrae,
-  ComfortModel.AdaptiveEn,
-  ComfortModel.HeatIndex,
-  ComfortModel.Humidex,
-  ComfortModel.WindChill,
-];
 
 export const comfortModelMetaById: Record<
   ComfortModel,

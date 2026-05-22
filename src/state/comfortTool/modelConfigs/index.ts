@@ -81,8 +81,10 @@ export interface ComfortModelDefinition<ResultType, ChartSourceType> {
     unitSystem: UnitSystemType,
   ) => PlotlyChartResponseDto | null;
   dynamicAxisFields: FieldKeyType[];
-  toneToClass: Record<string, string>;
   zones: ThermalZone[];
+  legendChartIds: ChartIdType[];
+  legendTitle: string;
+  lockYAxisChartIds: ChartIdType[];
   // Optional hook to synchronize model state (e.g. when changing charts)
   synchronize?: (context: ControlBehaviorContext) => BehaviorPatch | null;
 }

@@ -424,7 +424,7 @@ export function buildUtciDynamicChart(
   unitSystem: UnitSystemType = UnitSystem.SI,
   dynamicXAxis?: FieldKey,
   dynamicYAxis?: FieldKey,
-  baselineInputId?: string,
+  baselineInputId?: InputIdType,
 ): PlotlyChartResponseDto {
   const inputs = getCompareInputs(payload.inputs);
   const showInputLegend = inputs.length > 1;
@@ -446,7 +446,7 @@ export function buildUtciDynamicChart(
     };
   }
 
-  const activeInputPayload = (payload.inputs[baselineInputId as any] || inputs[0]?.payload);
+  const activeInputPayload = (payload.inputs[baselineInputId as InputIdType] || inputs[0]?.payload);
 
   const xMeta = fieldMetaByKey[dynamicXAxis];
   const yMeta = fieldMetaByKey[dynamicYAxis];
@@ -757,5 +757,8 @@ builder.setChartBuilder((chartId, chartSource, resultsByInput, unitSystem) => {
   return buildUtciChartResult(chartId, chartSource, resultsByInput, unitSystem);
 });
 builder.setZones(utciZonesList);
+builder.setLegendChartIds([ChartId.Stress, ChartId.UtciDynamic]);
+builder.setLegendTitle("UTCI Zones");
+builder.setLockYAxisChartIds([]);
 
 export const utciModelConfig = builder.build();

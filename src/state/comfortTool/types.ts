@@ -52,7 +52,7 @@ export type ModelCalculationCache<ResultType, ChartSourceType> = {
 // Mapping of models to their respective generic calculation caches.
 export type ModelCalculationCacheByModelState = Record<
   ComfortModelType,
-  ModelCalculationCache<any, any>
+  ModelCalculationCache<unknown, unknown>
 >;
 // Reporting input range violations when switching models.
 export interface ModelSwitchViolation {
@@ -110,7 +110,7 @@ export type ComfortToolActions = {
   exportShareSnapshot: () => ShareStateSnapshot;
   applyShareSnapshot: (snapshot: ShareStateSnapshot) => void;
   updateInput: (inputId: InputIdType, controlId: InputControlIdType, rawValue: string) => void;
-  scheduleCalculation: (options?: { immediate?: boolean }) => void;
+  scheduleCalculation: (options?: { immediate?: boolean; force?: boolean }) => void;
   confirmModelSwitch: () => void;
   cancelModelSwitch: () => void;
 };
@@ -126,6 +126,9 @@ export type ComfortToolSelectors = {
   getCurrentSelectedChart: () => ChartIdType;
   getCurrentChartHeightClass: () => string;
   getCurrentCacheStatus: () => CalculationCacheStatus;
+  getCurrentChartLockYAxis: () => boolean;
+  getCurrentChartLegendZones: () => ReadonlyArray<{ label: string; color: string }> | null;
+  getCurrentChartLegendTitle: () => string;
   getDynamicAxisOptions: () => FieldKeyType[];
   getPendingModelSwitch: () => PendingModelSwitch | null;
 };

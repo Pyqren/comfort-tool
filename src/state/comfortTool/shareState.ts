@@ -4,12 +4,12 @@
  */
 import { inputOrder, InputId, type InputId as InputIdType } from "../../models/inputSlots";
 import type { ChartId as ChartIdType } from "../../models/chartOptions";
-import { ComfortModel, comfortModelOrder, type ComfortModel as ComfortModelType } from "../../models/comfortModels";
+import { ComfortModel, type ComfortModel as ComfortModelType } from "../../models/comfortModels";
 import { FieldKey, type FieldKey as FieldKeyType } from "../../models/fieldKeys";
 import type { OptionKey as OptionKeyType } from "../../models/inputModes";
 import { UnitSystem, type UnitSystem as UnitSystemType } from "../../models/units";
 import { allFieldOrder } from "../../models/inputFieldsMeta";
-import { getComfortModelConfig } from "./modelConfigs";
+import { getComfortModelConfig, comfortModelOrder } from "./modelConfigs";
 import type { ComfortToolStateSlice } from "./types";
 import { isFiniteNumber } from "../../services/comfort/helpers";
 

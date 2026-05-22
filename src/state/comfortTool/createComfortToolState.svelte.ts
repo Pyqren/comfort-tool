@@ -19,7 +19,7 @@ import {
   type InputId as InputIdType,
 } from "../../models/inputSlots";
 import { chartMetaById, type ChartId as ChartIdType } from "../../models/chartOptions";
-import { ComfortModel, comfortModelOrder, type ComfortModel as ComfortModelType } from "../../models/comfortModels";
+import { ComfortModel, type ComfortModel as ComfortModelType } from "../../models/comfortModels";
 import { FieldKey, type FieldKey as FieldKeyType } from "../../models/fieldKeys";
 import { allFieldOrder, fieldMetaByKey } from "../../models/inputFieldsMeta";
 import type { InputControlId as InputControlIdType } from "../../models/inputControls";
@@ -27,7 +27,7 @@ import type { OptionKey as OptionKeyType } from "../../models/inputModes";
 import { UnitSystem } from "../../models/units";
 import type { BehaviorPatch, ControlBehaviorContext } from "../../services/comfort/controls/types";
 import { deriveInputsDerivedState } from "../../services/comfort/syncState";
-import { comfortModelConfigs, getComfortModelConfig, type ComfortModelDefinition } from "./modelConfigs";
+import { comfortModelConfigs, comfortModelOrder, getComfortModelConfig, type ComfortModelDefinition } from "./modelConfigs";
 import { createCalculationManager } from "./calculationManager.svelte";
 import {
   applyShareSnapshotToState,
@@ -54,7 +54,8 @@ import type {
  */
 function createInputState(inputId: InputIdType): InputState {
   return allFieldOrder.reduce((accumulator, fieldKey) => {
-    accumulator[fieldKey] = inputDefaultsById[inputId][fieldKey] ?? fieldMetaByKey[fieldKey].defaultValue;
+    const defaults = inputDefaultsById[inputId] as Partial<Record<FieldKeyType, number>>;
+    accumulator[fieldKey] = defaults[fieldKey] ?? fieldMetaByKey[fieldKey].defaultValue;
     return accumulator;
   }, {} as InputState);
 }
@@ -255,7 +256,7 @@ export function createComfortToolState(): ComfortToolController {
         }
 
         Object.entries(inputPatch).forEach(([fieldKey, value]) => {
-          state.inputsByInput[inputId as InputIdType][fieldKey] = value;
+          state.inputsByInput[inputId as InputIdType][fieldKey as FieldKeyType] = value;
         });
       });
     }
@@ -326,6 +327,15 @@ export function createComfortToolState(): ComfortToolController {
     getCurrentSelectedChart: () => getCurrentSelectedChartId(),
     getCurrentChartHeightClass: () => chartMetaById[getCurrentSelectedChartId()].heightClass,
     getCurrentCacheStatus: () => getCurrentModelCache().status,
+    getCurrentChartLockYAxis: () => getActiveModelConfig().lockYAxisChartIds.includes(getCurrentSelectedChartId()),
+    getCurrentChartLegendZones: () => {
+      const config = getActiveModelConfig();
+      if (config.legendChartIds.includes(getCurrentSelectedChartId())) {
+        return config.zones;
+      }
+      return null;
+    },
+    getCurrentChartLegendTitle: () => getActiveModelConfig().legendTitle,
     getDynamicAxisOptions,
     getPendingModelSwitch,
   };
@@ -352,25 +362,25 @@ export function createComfortToolState(): ComfortToolController {
    * Validates that the dynamic chart axes are both supported by the current model
    * and distinct from each other.
    */
-  function ensureUniqueDynamicAxes(config: any) {
+  function ensureUniqueDynamicAxes(config: ComfortModelDefinition<any, any>) {
     if (!config.dynamicAxisFields || config.dynamicAxisFields.length < 2) {
       return;
     }
 
     // 1. Ensure current X-axis is valid for this model
-    if (!config.dynamicAxisFields.includes(state.ui.dynamicXAxis as any)) {
+    if (!config.dynamicAxisFields.includes(state.ui.dynamicXAxis)) {
       state.ui.dynamicXAxis = config.dynamicAxisFields[0];
     }
 
     // 2. Ensure current Y-axis is valid for this model
-    if (!config.dynamicAxisFields.includes(state.ui.dynamicYAxis as any)) {
+    if (!config.dynamicAxisFields.includes(state.ui.dynamicYAxis)) {
       state.ui.dynamicYAxis = config.dynamicAxisFields[config.dynamicAxisFields.length - 1];
     }
 
     // 3. Prevent X and Y from being the same field
     if (state.ui.dynamicXAxis === state.ui.dynamicYAxis) {
       const fields = config.dynamicAxisFields;
-      const currentIndex = fields.indexOf(state.ui.dynamicYAxis as any);
+      const currentIndex = fields.indexOf(state.ui.dynamicYAxis);
       // Select the next available field, or loop back to the first.
       const nextIndex = (currentIndex + 1) % fields.length;
       state.ui.dynamicYAxis = fields[nextIndex];
@@ -410,14 +420,16 @@ export function createComfortToolState(): ComfortToolController {
 
         // Use a small epsilon for float comparisons to avoid precision issues.
         const epsilon = 0.0001;
-        if (currentValue < vm.minValue - epsilon || currentValue > vm.maxValue + epsilon) {
+        const underMin = vm.minValue !== undefined && currentValue < vm.minValue - epsilon;
+        const overMax = vm.maxValue !== undefined && currentValue > vm.maxValue + epsilon;
+        if (underMin || overMax) {
           violations.push({
             inputId,
             controlId: control.id,
             label: vm.label,
             currentValue,
-            minAllowed: vm.minValue,
-            maxAllowed: vm.maxValue,
+            minAllowed: vm.minValue ?? -Infinity,
+            maxAllowed: vm.maxValue ?? Infinity,
             displayUnits: vm.displayUnits,
           });
         }
@@ -451,11 +463,15 @@ export function createComfortToolState(): ComfortToolController {
       const context = getModelContext(targetModel);
       const vm = control.behavior.buildViewModel(context);
 
-      const clampedValue = Math.max(vm.minValue, Math.min(vm.maxValue, v.currentValue));
+      const min = vm.minValue ?? -Infinity;
+      const max = vm.maxValue ?? Infinity;
+      const clampedValue = Math.max(min, Math.min(max, v.currentValue));
       
-      const patch = control.behavior.applyInput(context, v.inputId, clampedValue.toString());
-      if (patch) {
-        applyBehaviorPatch(targetModel, patch);
+      if (control.behavior.applyInput) {
+        const patch = control.behavior.applyInput(context, v.inputId, clampedValue.toString());
+        if (patch) {
+          applyBehaviorPatch(targetModel, patch);
+        }
       }
     });
 
@@ -641,7 +657,7 @@ export function createComfortToolState(): ComfortToolController {
       scheduleCalculationInternal({ immediate: true, force: true });
     },
     updateInput,
-    scheduleCalculation: (scheduleOptions) => scheduleCalculationInternal(scheduleOptions),
+    scheduleCalculation: (scheduleOptions?: { immediate?: boolean; force?: boolean }) => scheduleCalculationInternal(scheduleOptions),
     confirmModelSwitch,
     cancelModelSwitch,
   };

@@ -145,7 +145,7 @@ humidexBuilder.setCalculator((state, visibleInputIds) => {
 humidexBuilder.setResultBuilder((results, visibleInputIds) => {
   return [
     buildResultSection(comfortModelMetaById[ComfortModel.Humidex].label, results, visibleInputIds, (result) => {
-      if (!result.humidex) return null;
+      if (result.humidex === undefined || result.humidex === null) return { text: "" };
       const formattedValue = formatDisplayValue(result.humidex, 1);
 
       const zone = humidexZonesList.find((z) => z.contains(result.humidex));
@@ -200,7 +200,10 @@ humidexBuilder.setChartBuilder((chartId, chartSource, resultsByInput, unitSystem
 
       return { rangeValue, category: zoneLabel, hovertext };
     },
-    getHovertemplateScatterDynamic: (label, cached) => `${label}<br>${fieldMetaByKey[chartSource.dynamicXAxis as FieldKey]?.label}: %{x:.1f}<br>${fieldMetaByKey[chartSource.dynamicYAxis as FieldKey]?.label}: %{y:.1f}<br><b>Discomfort: ${cached?.humidexDiscomfort || ""}</b><br>${comfortModelMetaById[ComfortModel.Humidex].label}: ${roundValue(cached?.humidex, 1)}<extra></extra>`,
+    getHovertemplateScatterDynamic: (label, cached) => {
+      if (!chartSource) return "";
+      return `${label}<br>${fieldMetaByKey[chartSource.dynamicXAxis as FieldKey]?.label}: %{x:.1f}<br>${fieldMetaByKey[chartSource.dynamicYAxis as FieldKey]?.label}: %{y:.1f}<br><b>Discomfort: ${cached?.humidexDiscomfort || ""}</b><br>${comfortModelMetaById[ComfortModel.Humidex].label}: ${roundValue(cached?.humidex, 1)}<extra></extra>`;
+    },
     hovertemplateContourDynamic: "%{text}<extra></extra>",
     staticConfig: {
       title: `${comfortModelMetaById[ComfortModel.Humidex].label} Discomfort`,
@@ -242,6 +245,9 @@ humidexBuilder.setDynamicAxisFields([FieldKey.DryBulbTemperature, FieldKey.Relat
 humidexBuilder.setDefaultOptions({});
 humidexBuilder.setOptionNormalizer((value) => isRecord(value) ? value : {});
 humidexBuilder.setZones(humidexZonesList);
+humidexBuilder.setLegendChartIds([ChartId.Humidex, ChartId.HumidexDynamic]);
+humidexBuilder.setLegendTitle("Humidex");
+humidexBuilder.setLockYAxisChartIds([ChartId.HumidexDynamic]);
 
 /**
  * Builds the final Humidex model configuration.

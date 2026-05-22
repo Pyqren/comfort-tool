@@ -16,25 +16,26 @@ export interface ThermalZoneConfig {
 }
 
 export class ThermalZone {
-  public readonly id?: string;
+  public readonly id: string;
   public readonly label: string;
   public readonly legendText?: string;
   public readonly min: number;
   public readonly max: number;
   public readonly color: string;
   public readonly textColor: string;
-  public readonly cssClass?: string;
+  public readonly cssClass: string;
   public readonly category?: string;
 
   constructor(config: ThermalZoneConfig) {
-    this.id = config.id;
+    const derivedId = config.id ?? config.label.toLowerCase().replace(/\s+/g, '-');
+    this.id = derivedId; // ID is derived from label if not provided (e.g., "Moderate Heat" -> "moderate-heat")
     this.label = config.label;
     this.legendText = config.legendText;
     this.min = config.min ?? -Infinity;
     this.max = config.max ?? Infinity;
     this.color = config.color;
     this.textColor = config.textColor ?? config.color;
-    this.cssClass = config.cssClass;
+    this.cssClass = config.cssClass ?? derivedId; // CSS class is derived from label if not provided (e.g., "Moderate Heat" -> "moderate-heat")
     this.category = config.category;
   }
 

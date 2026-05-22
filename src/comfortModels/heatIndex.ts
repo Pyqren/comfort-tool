@@ -215,6 +215,7 @@ heatIndexBuilder.setChartBuilder((chartId, chartSource, resultsByInput, unitSyst
       return { rangeValue, category: zoneLabel, hovertext };
     },
     getHovertemplateScatterDynamic: (label, cached) => {
+      if (!chartSource) return "";
       const modelLabel = comfortModelMetaById[ComfortModel.HeatIndex].label;
       return `${label}<br>${fieldMetaByKey[chartSource.dynamicXAxis as FieldKey]?.label}: %{x:.1f}<br>${fieldMetaByKey[chartSource.dynamicYAxis as FieldKey]?.label}: %{y:.1f}<br><b>Category: ${cached?.category || ""}</b><br>${modelLabel}: ${roundValue(convertFieldValueFromSi(FieldKey.DryBulbTemperature, cached?.hi, unitSystem), 1)}${fieldMetaByKey[FieldKey.DryBulbTemperature].displayUnits[unitSystem]}<extra></extra>`;
     },
@@ -270,6 +271,9 @@ heatIndexBuilder.setDynamicAxisFields([FieldKey.DryBulbTemperature, FieldKey.Rel
 heatIndexBuilder.setDefaultOptions({});
 heatIndexBuilder.setOptionNormalizer((value) => isRecord(value) ? value : {});
 heatIndexBuilder.setZones(heatIndexZonesList);
+heatIndexBuilder.setLegendChartIds([ChartId.HeatIndexRanges, ChartId.HeatIndexDynamic]);
+heatIndexBuilder.setLegendTitle("Heat Index");
+heatIndexBuilder.setLockYAxisChartIds([ChartId.HeatIndexDynamic]);
 
 /**
  * Builds the final Heat Index model configuration.

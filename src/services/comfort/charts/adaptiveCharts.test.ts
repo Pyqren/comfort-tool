@@ -14,8 +14,8 @@ const ashraePayload = {
   units: UnitSystem.SI,
 };
 
-function getBoundaryPoint(chart, traceName: string, targetTrm: number, side: "lower" | "upper") {
-  const trace = chart.traces.find((candidate) => candidate.name.includes(traceName));
+function getBoundaryPoint(chart: any, traceName: string, targetTrm: number, side: "lower" | "upper") {
+  const trace = chart.traces.find((candidate: any) => candidate.name.includes(traceName));
   expect(trace).toBeDefined();
 
   const lowerPointCount = Math.floor(trace!.x.length / 2);
@@ -25,7 +25,7 @@ function getBoundaryPoint(chart, traceName: string, targetTrm: number, side: "lo
   const yValues = side === "lower"
     ? trace!.y.slice(0, lowerPointCount)
     : trace!.y.slice(lowerPointCount);
-  const closestIndex = xValues.reduce((bestIndex, x, index) => (
+  const closestIndex = xValues.reduce((bestIndex: number, x: number, index: number) => (
     Math.abs(x - targetTrm) < Math.abs(xValues[bestIndex] - targetTrm) ? index : bestIndex
   ), 0);
 
@@ -40,7 +40,7 @@ describe("adaptive charts", () => {
     const chart = buildAdaptiveChart(
       {
         inputs: {
-          [InputId.Input1]: ashraePayload,
+          [InputId.Input1]: ashraePayload as any,
         },
       },
       AdaptiveStandardMode.Ashrae,
@@ -53,7 +53,7 @@ describe("adaptive charts", () => {
       {
         ...ashraePayload,
         trm: lower80.trm,
-      },
+      } as any,
       AdaptiveStandardMode.Ashrae,
     );
 
@@ -67,7 +67,7 @@ describe("adaptive charts", () => {
     const chart = buildAdaptiveDynamicChart(
       {
         inputs: {
-          [InputId.Input1]: ashraePayload,
+          [InputId.Input1]: ashraePayload as any,
         },
       },
       AdaptiveStandardMode.Ashrae,
@@ -97,7 +97,7 @@ describe("adaptive charts", () => {
         trm: 15.0,
         v: 0.6,
         units: UnitSystem.SI,
-      },
+      } as any,
       AdaptiveStandardMode.Ashrae,
     );
 
@@ -120,7 +120,7 @@ describe("adaptive charts", () => {
         trm: 12.0,
         v: 0.6,
         units: UnitSystem.SI,
-      },
+      } as any,
       AdaptiveStandardMode.En,
     );
 

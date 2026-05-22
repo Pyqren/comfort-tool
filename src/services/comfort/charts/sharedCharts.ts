@@ -11,10 +11,25 @@ import { CalculationSource } from "../../../models/calculationMetadata";
 import type { CompareInputMap, PlotlyChartResponseDto, PlotTraceDto } from "../../../models/comfortDtos";
 import { type UnitSystem as UnitSystemType } from "../../../models/units";
 import { convertFieldValueFromSi, convertFieldValueToSi } from "../../units";
-import { getCompareInputs, buildColorscale } from "../helpers";
+import { getCompareInputs } from "../helpers";
 import { buildInputScatterTrace, buildContourTrace } from "./plotlyBuilders";
 import { ThermalZone } from "../../../models/thermalZone";
 import type { InputId as InputIdType } from "../../../models/inputSlots";
+
+/**
+ * Dynamically constructs Plotly colorscales based on a zones list.
+ * @param zones The list of thermal zones.
+ * @returns A Plotly-compatible colorscale array.
+ */
+function buildColorscale(zones: ThermalZone[]) {
+  const colorscale: Array<[number, string]> = [];
+  const step = 1 / zones.length;
+  zones.forEach((zone, i) => {
+    colorscale.push([i * step, zone.color]);
+    colorscale.push([(i + 1) * step, zone.color]);
+  });
+  return colorscale;
+}
 
 /**
  * Builds a generic range chart for thermal indices, creating a 2D contour chart 

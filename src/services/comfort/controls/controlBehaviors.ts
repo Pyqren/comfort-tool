@@ -314,7 +314,7 @@ function buildCanonicalInputSyncPatch(
   },
 ): BehaviorPatch {
   // The patch to apply to the inputs.
-  const inputsPatch = {} as BehaviorPatch["inputsPatch"];
+  const inputsPatch: NonNullable<BehaviorPatch["inputsPatch"]> = {};
 
   // Apply the updater function to each target input.
   targetInputIds.forEach((inputId) => {
@@ -654,6 +654,9 @@ export function createTemperatureControlBehavior(
     },
     // Apply the input value to the control.
     applyInput: (context, inputId, nextValueSi) => {
+      if (nextValueSi === null) {
+        return null;
+      }
       // Normalize the control options.
       const options = normalizeControlOptions(context.options);
       
@@ -846,6 +849,9 @@ export function createAirSpeedControlBehavior(controlId: InputControlIdType): In
     },
     // Apply input to the control.
     applyInput: (context, inputId, nextValueSi) => {
+      if (nextValueSi === null) {
+        return null;
+      }
       // Normalize the control options.
       const airSpeedMode = normalizeControlOptions(context.options)[OptionKey.AirSpeedInputMode];
       
@@ -1191,6 +1197,9 @@ export function createHumidityControlBehavior(controlId: InputControlIdType): In
     },
     // Apply the input to the control.
     applyInput: (context, inputId, nextValue) => {
+      if (nextValue === null) {
+        return null;
+      }
       // Get the humidity mode from the control options.
       const humidityMode = normalizeControlOptions(context.options)[OptionKey.HumidityInputMode];
 

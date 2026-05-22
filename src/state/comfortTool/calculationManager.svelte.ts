@@ -2,9 +2,7 @@ import type { InputId as InputIdType } from "../../models/inputSlots";
 import type { ComfortToolStateSlice } from "./types";
 import { getComfortModelConfig } from "./modelConfigs";
 
-function getTimerApi() {
-  return typeof window !== "undefined" ? window : globalThis;
-}
+type TimerId = ReturnType<typeof globalThis.setTimeout>;
 
 async function yieldToNextFrame() {
   if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
@@ -17,13 +15,12 @@ async function yieldToNextFrame() {
 }
 
 export function createCalculationManager(state: ComfortToolStateSlice, getVisibleInputIds: () => InputIdType[]) {
-  let calculationTimerId: ReturnType<typeof setTimeout> | null = null;
+  let calculationTimerId: TimerId | null = null;
   let latestCalculationToken = 0;
 
   function clearScheduledCalculation() {
     if (calculationTimerId !== null) {
-      // Use 'as any' to reconcile NodeJS.Timeout vs Browser number definitions between SSR and Client environments
-      getTimerApi().clearTimeout(calculationTimerId as any);
+      globalThis.clearTimeout(calculationTimerId);
       calculationTimerId = null;
     }
   }
@@ -79,7 +76,7 @@ export function createCalculationManager(state: ComfortToolStateSlice, getVisibl
       return;
     }
 
-    calculationTimerId = getTimerApi().setTimeout(runCalculation, 180);
+    calculationTimerId = globalThis.setTimeout(runCalculation, 180);
   }
 
   return { scheduleCalculation };
