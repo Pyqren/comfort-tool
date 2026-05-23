@@ -14,12 +14,10 @@ export const ChartId = {
   AdaptiveDynamic: "adaptiveDynamic", //  Adaptive dynamic chart
   PmvDynamic: "pmvDynamic", // PMV (ASHRAE) dynamic chart
   UtciDynamic: "utciDynamic", // UTCI (Heat stress) dynamic chart
-  UtciThreshold: "utciThreshold", // UTCI Threshold chart
   HeatIndexRanges: "heatIndexRanges", // Heat index chart
   HeatIndexDynamic: "heatIndexDynamic", // Heat index dynamic chart
   Humidex: "humidex", // Humidex chart
   HumidexDynamic: "humidexDynamic", // Humidex dynamic chart
-  WindChill: "windChill", // Wind chill chart
   WindChillDynamic: "windChillDynamic", // Wind chill dynamic chart
 } as const;
 
@@ -42,7 +40,6 @@ export interface ChartMetadata {
   emptyMessage: string;
   heightClass: string;
   isDynamic?: boolean; // optional, defaults to false
-  lockYAxis?: boolean; // optional, defaults to false
 }
 
 export const chartMetaById: Record<ChartId, ChartMetadata> = {
@@ -52,7 +49,7 @@ export const chartMetaById: Record<ChartId, ChartMetadata> = {
     heightClass: "h-[480px] xl:h-[480px]",
   },
   [ChartId.Stress]: {
-    name: "Psychrometric",
+    name: "UTCI",
     emptyMessage: "No psychrometric chart yet.",
     heightClass: "h-[480px] xl:h-[480px]",
   },
@@ -79,11 +76,6 @@ export const chartMetaById: Record<ChartId, ChartMetadata> = {
     heightClass: "h-[480px] xl:h-[480px]",
     isDynamic: true,
   },
-  [ChartId.UtciThreshold]: {
-    name: "Threshold",
-    emptyMessage: "No threshold chart yet.",
-    heightClass: "h-[480px] xl:h-[480px]",
-  },
   [ChartId.HeatIndexRanges]: {
     name: "Psychrometric",
     emptyMessage: "No psychrometric chart yet.",
@@ -94,7 +86,6 @@ export const chartMetaById: Record<ChartId, ChartMetadata> = {
     emptyMessage: "No dynamic chart yet.",
     heightClass: "h-[480px] xl:h-[480px]",
     isDynamic: true,
-    lockYAxis: true,
   },
   [ChartId.Humidex]: {
     name: "Psychrometric",
@@ -106,18 +97,11 @@ export const chartMetaById: Record<ChartId, ChartMetadata> = {
     emptyMessage: "No dynamic chart yet.",
     heightClass: "h-[480px] xl:h-[480px]",
     isDynamic: true,
-    lockYAxis: true,
-  },
-  [ChartId.WindChill]: {
-    name: "Psychrometric",
-    emptyMessage: "No psychrometric chart yet.",
-    heightClass: "h-[480px] xl:h-[480px]",
   },
   [ChartId.WindChillDynamic]: {
     name: "Dynamic",
     emptyMessage: "No dynamic chart yet.",
     heightClass: "h-[480px] xl:h-[480px]",
     isDynamic: true,
-    lockYAxis: true,
   },
 };

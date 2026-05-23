@@ -43,6 +43,9 @@
     visibleInputIds?: InputIdType[];
     compareEnabled?: boolean;
     embedded?: boolean;
+    lockYAxis?: boolean;
+    legendZones?: ReadonlyArray<{ label: string; color: string }> | null;
+    legendTitle?: string;
   }
 
   let {
@@ -66,6 +69,9 @@
     visibleInputIds = [],
     compareEnabled = false,
     embedded = false,
+    lockYAxis = false,
+    legendZones = null,
+    legendTitle = "",
   }: Props = $props();
 
   let exportChart: ((type: "png" | "svg") => void) | undefined =
@@ -80,7 +86,6 @@
   });
 
   // Disable dynamic axis selection based on the currently selected chart's metadata properties (disabled when lockYAxis is true)
-  const lockYAxis = $derived(!!chartMetaById[selectedChart]?.lockYAxis);
   const isDynamicChart = $derived(!!chartMetaById[selectedChart]?.isDynamic);
   const showAxisMenu = $derived(
     (compareEnabled || isDynamicChart) &&
@@ -90,13 +95,10 @@
   const axisMenuIdPrefix = $derived(
     `${chartPanelIdPrefix}-${selectedModel}-${selectedChart}`,
   );
-  // Disable zones toggle for models that do not use zones (AdaptiveAshrae, AdaptiveEn) and for dynamic charts
+  // Show zones toggle ONLY for PMV's Psychrometric chart.
   const showZonesToggle = $derived(
-    selectedModel !== ComfortModel.AdaptiveAshrae &&
-      selectedModel !== ComfortModel.AdaptiveEn &&
-      selectedChart !== ChartId.PmvDynamic &&
-      selectedChart !== ChartId.UtciDynamic &&
-      selectedChart !== ChartId.UtciThreshold,
+    selectedModel === ComfortModel.Pmv &&
+      selectedChart === ChartId.Psychrometric,
   );
 </script>
 
@@ -166,7 +168,7 @@
     />
   </div>
 
-  <ChartLegend {selectedChart} {selectedModel} />
+  <ChartLegend zones={legendZones} {legendTitle} />
 {/snippet}
 
 {#if embedded}

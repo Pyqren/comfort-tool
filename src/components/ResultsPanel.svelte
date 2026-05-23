@@ -26,7 +26,6 @@
     resultSections: ResultSectionViewModel[];
     errorMessage: string;
     isLoading: boolean;
-    toneToClass?: Record<string, string>;
     embedded?: boolean;
   }
 
@@ -36,7 +35,6 @@
     resultSections,
     errorMessage,
     isLoading,
-    toneToClass = {},
     embedded = false,
   }: Props = $props();
 </script>
@@ -59,18 +57,11 @@
           </TableBodyCell>
           {#each sections as section}
             {@const cell = section.valuesByInput[inputId]}
-            <!-- Determine the appropriate CSS class based on the cell's tone, and provide fallback defaults -->
-            {@const toneClass = cell?.tone
-              ? toneToClass[cell.tone] ||
-                {
-                  success: "text-emerald-700",
-                  danger: "text-red-600",
-                  warning: "text-orange-500",
-                }[cell.tone] ||
-                ""
-              : ""}
-            <!-- Render the cell, applying the appropriate tone class if a cell is found -->
-            <TableBodyCell class={!cell ? "text-stone-400" : toneClass}>
+            <!-- Render the cell, applying direct inline color from the thermal comfort zone if provided -->
+            <TableBodyCell
+              class={!cell ? "text-stone-400" : ""}
+              style={cell?.color ? `color: ${cell.color}` : ""}
+            >
               {#if cell}
                 <div class="font-medium">{cell.text}</div>
                 {#if cell.subtext}

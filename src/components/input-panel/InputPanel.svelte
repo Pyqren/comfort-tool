@@ -1,12 +1,15 @@
 <svelte:options runes={true} />
 
 <script lang="ts">
-  import { Button, Card, Heading, Modal } from "flowbite-svelte";
+  import { Button, Card, Modal } from "flowbite-svelte";
 
   import ClothingEnsembleBuilder from "../ClothingEnsembleBuilder.svelte";
   import QuickClothingEstimate from "../clothing-builder/QuickClothingEstimate.svelte";
   import InputFieldRow from "./InputFieldRow.svelte";
-  import { inputOrder, type InputId as InputIdType } from "../../models/inputSlots";
+  import {
+    inputOrder,
+    type InputId as InputIdType,
+  } from "../../models/inputSlots";
   import { inputDisplayMetaById } from "../../models/inputSlotPresentation";
   import { FieldKey } from "../../models/fieldKeys";
   import { fieldMetaByKey } from "../../models/inputFieldsMeta";
@@ -18,9 +21,7 @@
     toolState: ComfortToolController;
   }
 
-  let {
-    toolState,
-  }: Props = $props();
+  let { toolState }: Props = $props();
 
   let clothingBuilderOpen = $state(false);
   let quickClothingEstimateOpen = $state(false);
@@ -28,7 +29,11 @@
 
   function handleApplyClothingValue(inputId: InputIdType, value: number) {
     toolState.actions.setActiveInputId(inputId);
-    toolState.actions.updateInput(inputId, InputControlId.ClothingInsulation, value.toFixed(2));
+    toolState.actions.updateInput(
+      inputId,
+      InputControlId.ClothingInsulation,
+      value.toFixed(2),
+    );
   }
 
   function isInputVisible(inputId: InputIdType) {
@@ -60,9 +65,12 @@
               <Button
                 color="none"
                 class={`w-full rounded-sm border px-2 py-1.5 text-left ${getCompareToggleClasses(inputId)}`}
-                onclick={() => toolState.actions.toggleCompareInputVisibility(inputId)}
+                onclick={() =>
+                  toolState.actions.toggleCompareInputVisibility(inputId)}
               >
-                <span class="text-sm font-semibold">{inputDisplayMetaById[inputId].label}</span>
+                <span class="text-sm font-semibold"
+                  >{inputDisplayMetaById[inputId].label}</span
+                >
               </Button>
             </li>
           {/each}

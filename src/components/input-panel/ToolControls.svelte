@@ -4,9 +4,10 @@
   import { Heading, Toggle } from "flowbite-svelte";
 
   import SearchableSelect from "../SearchableSelect.svelte";
-  import { comfortModelMetaById, comfortModelOrder } from "../../models/comfortModels";
+  import { comfortModelMetaById, comfortModelOrder } from "../../state/comfortTool/modelConfigs";
   import { UnitSystem } from "../../models/units";
   import type { ComfortToolController } from "../../state/comfortTool/types";
+  import type { ComfortModel } from "../../models/comfortModels";
 
   interface Props {
     toolState: ComfortToolController;
@@ -32,7 +33,7 @@
       value={toolState.state.ui.selectedModel}
       placeholder="Select model"
       searchPlaceholder="Search model..."
-      onSelect={toolState.actions.setSelectedModel}
+      onSelect={(val) => toolState.actions.setSelectedModel(val as ComfortModel)}
     />
   </div>
 

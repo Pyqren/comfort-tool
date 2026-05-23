@@ -5,7 +5,7 @@
 import type { InputId as InputIdType } from "../../../models/inputSlots";
 import { ComfortModel, type ComfortModel as ComfortModelType } from "../../../models/comfortModels";
 import type { ThermalZone } from "../../../models/thermalZone";
-import { FieldKey, type FieldKey as FieldKeyType } from "../../../models/fieldKeys";
+import { type FieldKey as FieldKeyType } from "../../../models/fieldKeys";
 import type { PlotlyChartResponseDto } from "../../../models/comfortDtos";
 import type { ChartId as ChartIdType } from "../../../models/chartOptions";
 import type { OptionKey as OptionKeyType } from "../../../models/inputModes";
@@ -16,9 +16,9 @@ import type {
 } from "../../../services/comfort/controls/types";
 import type { UnitSystem as UnitSystemType } from "../../../models/units";
 import type { ComfortToolStateSlice, ModelOptionsState, ResultSectionViewModel } from "../types";
-import { pmvModelConfig } from "./pmv";
-import { utciModelConfig } from "./utci";
-import { adaptiveAshraeModelConfig, adaptiveEnModelConfig } from "./adaptive";
+import { pmvModelConfig } from "../../../comfortModels/pmv";
+import { utciModelConfig } from "../../../comfortModels/utci";
+import { adaptiveAshraeModelConfig, adaptiveEnModelConfig } from "../../../comfortModels/adaptive";
 import { heatIndexModelConfig } from "../../../comfortModels/heatIndex";
 import { humidexModelConfig } from "../../../comfortModels/humidex";
 import { windChillModelConfig } from "../../../comfortModels/windChill";
@@ -81,8 +81,10 @@ export interface ComfortModelDefinition<ResultType, ChartSourceType> {
     unitSystem: UnitSystemType,
   ) => PlotlyChartResponseDto | null;
   dynamicAxisFields: FieldKeyType[];
-  toneToClass: Record<string, string>;
   zones: ThermalZone[];
+  legendChartIds: ChartIdType[];
+  legendTitle: string;
+  lockYAxisChartIds: ChartIdType[];
   // Optional hook to synchronize model state (e.g. when changing charts)
   synchronize?: (context: ControlBehaviorContext) => BehaviorPatch | null;
 }

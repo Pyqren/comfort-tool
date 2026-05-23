@@ -1,11 +1,10 @@
 import { inputOrder, type InputId as InputIdType } from "../../../models/inputSlots";
-import type { ResultSectionViewModel, ModelOptionsState } from "../types";
+import type { ResultSectionViewModel, ModelOptionsState, ResultCellViewModel } from "../types";
 import type { ComfortModelDefinition, ModelOptionChangeHandler } from "./index";
 import type { ComfortModel as ComfortModelType } from "../../../models/comfortModels";
 import type { FieldKey as FieldKeyType } from "../../../models/fieldKeys";
 import type { ChartId as ChartIdType } from "../../../models/chartOptions";
 import type { OptionKey as OptionKeyType } from "../../../models/inputModes";
-import type { ResultTone } from "../../../models/resultTones";
 import type { InputControlDefinition } from "../../../services/comfort/controls/types";
 import type { ThermalZone } from "../../../models/thermalZone";
 
@@ -44,7 +43,7 @@ export function buildResultSection<T>(
   title: string,
   resultsByInput: Record<InputIdType, T | null>,
   visibleInputIds: InputIdType[],
-  formatter: (result: T) => { text: string; subtext?: string; tone?: ResultTone },
+  formatter: (result: T) => ResultCellViewModel,
   group?: string,
 ): ResultSectionViewModel {
   return {
@@ -60,7 +59,7 @@ export function buildResultSection<T>(
 
       acc[inputId] = formattedValue;
       return acc;
-    }, {} as Record<InputIdType, { text: string; subtext?: string; tone?: ResultTone } | null>),
+    }, {} as Record<InputIdType, ResultCellViewModel | null>),
   };
 }
 
@@ -77,7 +76,9 @@ export class ComfortModelBuilder<ResultType, ChartSourceType> {
     controls: [],
     optionHandlersByKey: {},
     zones: [],
-    toneToClass: {},
+    legendChartIds: [],
+    legendTitle: "",
+    lockYAxisChartIds: [],
   };
 
   /**
@@ -201,11 +202,29 @@ export class ComfortModelBuilder<ResultType, ChartSourceType> {
   }
 
   /**
-   * Defines the mapping between tone keys and UI CSS classes.
-   * @param map Record mapping tone keys to CSS utility class strings.
+   * Defines the chart IDs for which this model shows a zone legend.
+   * @param chartIds Array of ChartId values.
    */
-  setToneToClass(map: Record<string, string>): this {
-    this.config.toneToClass = map;
+  setLegendChartIds(chartIds: ChartIdType[]): this {
+    this.config.legendChartIds = chartIds;
+    return this;
+  }
+
+  /**
+   * Sets the display title for the legend.
+   * @param title Title string.
+   */
+  setLegendTitle(title: string): this {
+    this.config.legendTitle = title;
+    return this;
+  }
+
+  /**
+   * Defines the chart IDs that lock the dynamic Y-axis.
+   * @param chartIds Array of ChartId values.
+   */
+  setLockYAxisChartIds(chartIds: ChartIdType[]): this {
+    this.config.lockYAxisChartIds = chartIds;
     return this;
   }
 

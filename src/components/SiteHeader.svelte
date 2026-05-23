@@ -79,7 +79,7 @@
 
 <Navbar fluid={true} class="border-b border-stone-200 bg-white px-0 py-4">
   <div class="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between px-4 sm:px-6 lg:px-8">
-    <NavBrand href="#overview" class="flex items-center gap-6 hover:opacity-95 transition-opacity">
+    <NavBrand href="/" class="flex items-center gap-6 hover:opacity-95 transition-opacity">
       <div class="header-logo-container">
         <Img src={siteBrand.headerLogoSrc} alt={siteBrand.eyebrow} class="header-logo" />
       </div>

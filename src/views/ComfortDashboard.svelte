@@ -11,16 +11,13 @@
   import ChartPanel from "../components/chart/ChartPanel.svelte";
   import InputPanel from "../components/input-panel/InputPanel.svelte";
   import ResultsPanel from "../components/ResultsPanel.svelte";
-  import { getComfortModelConfig } from "../state/comfortTool/modelConfigs";
   import type { ComfortToolController } from "../state/comfortTool/types";
 
   interface Props {
     toolState: ComfortToolController;
   }
 
-  let {
-    toolState,
-  }: Props = $props();
+  let { toolState }: Props = $props();
 </script>
 
 <main id="overview" class="bg-stone-50 px-4 py-4 sm:px-6 lg:px-8">
@@ -40,7 +37,6 @@
           resultSections={toolState.selectors.getResultSections()}
           errorMessage={toolState.state.ui.errorMessage}
           isLoading={toolState.state.ui.isLoading}
-          toneToClass={getComfortModelConfig(toolState.state.ui.selectedModel).toneToClass}
           embedded={true}
         />
 
@@ -65,6 +61,9 @@
           compareEnabled={toolState.state.ui.compareEnabled}
           onSelectXAxis={toolState.actions.setDynamicXAxis}
           onSelectYAxis={toolState.actions.setDynamicYAxis}
+          lockYAxis={toolState.selectors.getCurrentChartLockYAxis()}
+          legendZones={toolState.selectors.getCurrentChartLegendZones()}
+          legendTitle={toolState.selectors.getCurrentChartLegendTitle()}
           embedded={true}
         />
       </Card>

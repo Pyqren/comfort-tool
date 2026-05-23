@@ -72,7 +72,7 @@ export function toPlotlyFigure(chart: PlotlyChartResponseDto): {
     config: {
       responsive: true,
       displaylogo: false,
-      displayModeBar: false,
+      displayModeBar: "hover",
     },
   };
 }
