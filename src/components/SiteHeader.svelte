@@ -86,7 +86,7 @@
 
       <div class="min-w-0">
         <Heading tag="h6" class="text-eyebrow uppercase tracking-[0.2em]">{siteBrand.eyebrow}</Heading>
-        <Heading tag="h1" class="truncate text-lg font-semibold tracking-tight text-stone-950 sm:text-xl">{siteBrand.title}</Heading>
+        <Heading tag="h1" class="truncate text-lg font-semibold tracking-tight text-stone-950 sm:text-lg">{siteBrand.title}</Heading>
       </div>
     </NavBrand>
 

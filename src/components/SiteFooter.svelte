@@ -43,7 +43,7 @@
           >
           <Heading
             tag="h2"
-            class="mt-1 text-base font-semibold tracking-tight text-white"
+            class="mt-1 text-lg font-semibold tracking-tight text-white"
             >{siteBrand.title}</Heading
           >
           <p class="mt-1 text-sm text-white/58 max-w-2xl">

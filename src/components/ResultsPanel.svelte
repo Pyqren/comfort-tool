@@ -3,19 +3,11 @@
    * @component
    * ResultsPanel.svelte
    *
-   * Renders a tabular display of thermal comfort model results for all visible inputs.
-   * It dynamically groups results by category (e.g., "Heat Index", "UTCI") and applies
-   * color-coded tones based on the comfort risk levels calculated by the models.
+   * Renders a compact tabular display of thermal comfort model results for all visible inputs.
+   * Each result section is split into a primary value column and a secondary detail column so
+   * model outputs never stack into two lines inside one cell.
    */
-  import {
-    Card,
-    Table,
-    TableBody,
-    TableBodyCell,
-    TableBodyRow,
-    TableHead,
-    TableHeadCell,
-  } from "flowbite-svelte";
+  import { Card } from "flowbite-svelte";
   import { inputDisplayMetaById } from "../models/inputSlotPresentation";
   import type { InputId as InputIdType } from "../models/inputSlots";
   import type { ResultSectionViewModel } from "../state/comfortTool/types";
@@ -37,69 +29,125 @@
     isLoading,
     embedded = false,
   }: Props = $props();
+
+  type ResultGroupViewModel = {
+    group: string;
+    sections: ResultSectionViewModel[];
+  };
+
+  const groupedSections = $derived.by<ResultGroupViewModel[]>(() => {
+    const groups = new Map<string, ResultSectionViewModel[]>();
+
+    for (const section of resultSections) {
+      const groupKey = section.group ?? "default";
+      const current = groups.get(groupKey);
+
+      if (current) {
+        current.push(section);
+      } else {
+        groups.set(groupKey, [section]);
+      }
+    }
+
+    return Array.from(groups.entries()).map(([group, sections]) => ({
+      group,
+      sections,
+    }));
+  });
+
+  function getGridTemplateColumns(sectionCount: number): string {
+    if (sectionCount <= 0) {
+      return "minmax(6rem, 8rem)";
+    }
+
+    return `minmax(6rem, 8rem) repeat(${sectionCount}, minmax(0, 1fr))`;
+  }
+
+  const headerTextClass = "text-xs";
+  const bodyTextClass = "text-sm";
+  const secondaryTextClass = "text-xs";
 </script>
 
 {#snippet table(sections: ResultSectionViewModel[])}
-  <Table>
-    <TableHead>
-      <TableHeadCell>Input</TableHeadCell>
-      {#each sections as section}
-        <TableHeadCell>{section.title}</TableHeadCell>
-      {/each}
-    </TableHead>
-    <TableBody>
-      {#each visibleInputIds as inputId}
-        <TableBodyRow>
-          <TableBodyCell
-            class={`font-medium ${inputDisplayMetaById[inputId].accentClass}`}
+  {@const gridTemplateColumns = getGridTemplateColumns(sections.length)}
+
+  <div class="w-full overflow-x-auto rounded-lg bg-transparent">
+    <div class="w-full min-w-max">
+      <div
+        class="grid border-b border-stone-200"
+        style={`grid-template-columns: ${gridTemplateColumns};`}
+      >
+        <div class={`min-w-0 px-2 py-1 ${headerTextClass} font-semibold uppercase leading-none text-stone-500`}>
+          <span class="block truncate" title="Input">Input</span>
+        </div>
+        {#each sections as section, sectionIndex}
+          <div
+            class={`min-w-0 px-2 py-1 ${headerTextClass} font-semibold uppercase leading-none text-stone-500 ${
+              sectionIndex === 0 ? "" : "border-l border-stone-200"
+            }`}
           >
-            {inputDisplayMetaById[inputId].label}
-          </TableBodyCell>
-          {#each sections as section}
-            {@const cell = section.valuesByInput[inputId]}
-            <!-- Render the cell, applying direct inline color from the thermal comfort zone if provided -->
-            <TableBodyCell
-              class={!cell ? "text-stone-400" : ""}
-              style={cell?.color ? `color: ${cell.color}` : ""}
+            <span class="block truncate" title={section.title}>{section.title}</span>
+          </div>
+        {/each}
+      </div>
+
+      <div class="divide-y divide-stone-200">
+        {#each visibleInputIds as inputId}
+          {@const inputMeta = inputDisplayMetaById[inputId]}
+          <div
+            class="grid"
+            style={`grid-template-columns: ${gridTemplateColumns};`}
+          >
+            <div
+              class={`min-w-0 px-2 py-1 ${bodyTextClass} font-medium leading-none ${inputMeta.accentClass}`}
             >
-              {#if cell}
-                <div class="font-medium">{cell.text}</div>
-                {#if cell.subtext}
-                  <div class="text-[10px] opacity-70 mt-0.5">
-                    {cell.subtext}
+              <span class="block truncate" title={inputMeta.label}>{inputMeta.label}</span>
+            </div>
+            {#each sections as section, sectionIndex}
+              {@const cell = section.valuesByInput[inputId]}
+              <div
+                class={`min-w-0 px-2 py-1 ${
+                  sectionIndex === 0 ? "" : "border-l border-stone-200"
+                }`}
+                style={cell?.color ? `color: ${cell.color}` : ""}
+              >
+                <div class={`grid min-w-0 grid-cols-2 items-center gap-0 leading-none ${cell ? "" : "text-stone-400"}`}>
+                  <div class="min-w-0">
+                    {#if cell}
+                      <span class={`block truncate font-medium ${bodyTextClass}`} title={cell.text}>
+                        {cell.text}
+                      </span>
+                    {:else}
+                      <span class={`block truncate ${bodyTextClass}`} title={isLoading ? "Loading..." : "No result"}>
+                        {isLoading ? "Loading..." : "No result"}
+                      </span>
+                    {/if}
                   </div>
-                {/if}
-              {:else}
-                <!-- Display loading state when results are being fetched -->
-                {isLoading ? "Loading..." : "No result"}
-              {/if}
-            </TableBodyCell>
-          {/each}
-        </TableBodyRow>
-      {/each}
-    </TableBody>
-  </Table>
+                  <div class={`min-w-0 text-right ${secondaryTextClass} text-stone-500`}>
+                    <span class="block truncate" title={cell?.subtext ?? ""}>
+                      {cell?.subtext ?? ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/each}
+      </div>
+    </div>
+  </div>
 {/snippet}
 
 {#snippet content()}
-  {@const groups = Array.from(
-    new Set(resultSections.map((s) => s.group ?? "default")),
-  )}
-
-  <div class="flex flex-col gap-6">
-    {#each groups as group}
-      {@const sectionsInGroup = resultSections.filter(
-        (s) => (s.group ?? "default") === group,
-      )}
-      <div class="flex flex-col gap-2">
-        {#if group !== "default"}
-          <h3
-            class="text-[11px] font-bold uppercase tracking-widest text-stone-400 px-1"
-          >
-            {group}
+  <div class="flex flex-col gap-3">
+    {#each groupedSections as groupBlock}
+      <div class="flex flex-col gap-1.5">
+        {#if groupBlock.group !== "default"}
+          <h3 class={`px-1 ${secondaryTextClass} font-semibold uppercase text-stone-400`}>
+            {groupBlock.group}
           </h3>
         {/if}
-        {@render table(sectionsInGroup)}
+        {@render table(groupBlock.sections)}
       </div>
     {/each}
   </div>

@@ -94,7 +94,7 @@
               {inputDisplayMetaById[inputId].label}
             </span>
             {#if !visibleInputIds.includes(inputId)}
-              <span class="text-[10px] uppercase text-stone-400 font-medium"
+              <span class="text-xs uppercase text-stone-400 font-medium"
                 >Inactive</span
               >
             {/if}

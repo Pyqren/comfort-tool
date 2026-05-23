@@ -33,7 +33,7 @@
             class="h-2.5 w-2.5 rounded-full border border-stone-200 shadow-sm"
             style="background-color: {zone.color}"
           ></div>
-          <span class="text-[11px] font-medium text-stone-500"
+          <span class="text-xs font-medium text-stone-500"
             >{zone.label}</span
           >
         </div>
