@@ -55,12 +55,39 @@
     }));
   });
 
-  function getGridTemplateColumns(sectionCount: number): string {
-    if (sectionCount <= 0) {
-      return "minmax(6rem, 8rem)";
+  function hasSectionDetail(section: ResultSectionViewModel): boolean {
+    return visibleInputIds.some((inputId) => !!section.valuesByInput[inputId]?.subtext);
+  }
+
+  function getSectionWidthWeight(section: ResultSectionViewModel): number {
+    let weight = hasSectionDetail(section) ? 1.25 : 0.8;
+
+    if (section.title.length > 14) {
+      weight += 0.2;
     }
 
-    return `minmax(6rem, 8rem) repeat(${sectionCount}, minmax(0, 1fr))`;
+    const hasLongValue = visibleInputIds.some((inputId) => {
+      const cell = section.valuesByInput[inputId];
+      return !!cell && (cell.text.length > 14 || (cell.subtext?.length ?? 0) > 14);
+    });
+
+    if (hasLongValue) {
+      weight += 0.2;
+    }
+
+    return Math.min(weight, 1.6);
+  }
+
+  function getGridTemplateColumns(sections: ResultSectionViewModel[]): string {
+    if (sections.length <= 0) {
+      return "minmax(max-content, 0.7fr)";
+    }
+
+    const resultColumns = sections
+      .map((section) => `minmax(max-content, ${getSectionWidthWeight(section)}fr)`)
+      .join(" ");
+
+    return `minmax(max-content, 0.7fr) ${resultColumns}`;
   }
 
   const headerTextClass = "text-xs";
@@ -69,7 +96,7 @@
 </script>
 
 {#snippet table(sections: ResultSectionViewModel[])}
-  {@const gridTemplateColumns = getGridTemplateColumns(sections.length)}
+  {@const gridTemplateColumns = getGridTemplateColumns(sections)}
 
   <div class="w-full overflow-x-auto rounded-lg bg-transparent">
     <div class="w-full min-w-max">
@@ -111,7 +138,7 @@
                 }`}
                 style={cell?.color ? `color: ${cell.color}` : ""}
               >
-                <div class={`grid min-w-0 grid-cols-2 items-center gap-0 leading-none ${cell ? "" : "text-stone-400"}`}>
+                <div class={`flex min-w-0 items-center justify-between gap-3 leading-none ${cell ? "" : "text-stone-400"}`}>
                   <div class="min-w-0">
                     {#if cell}
                       <span class={`block truncate font-medium ${bodyTextClass}`} title={cell.text}>
@@ -123,7 +150,7 @@
                       </span>
                     {/if}
                   </div>
-                  <div class={`min-w-0 text-right ${secondaryTextClass} text-stone-500`}>
+                  <div class={`min-w-0 shrink-0 text-right ${secondaryTextClass} text-stone-500`}>
                     <span class="block truncate" title={cell?.subtext ?? ""}>
                       {cell?.subtext ?? ""}
                     </span>
