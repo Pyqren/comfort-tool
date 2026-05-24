@@ -208,7 +208,7 @@
               >
                 <span class="font-semibold">{item.name}</span>
                 {#if item.description}
-                  <span class="text-[11px] opacity-70">{item.description}</span>
+                  <span class="text-xs opacity-70">{item.description}</span>
                 {/if}
               </Button>
             </li>

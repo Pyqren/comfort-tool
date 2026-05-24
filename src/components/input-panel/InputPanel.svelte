@@ -50,7 +50,7 @@
 
 <Card size="none" class="w-full border-stone-300 bg-white p-3 shadow-sm">
   <header class="flex items-start justify-between gap-3 pb-2">
-    <h2 class="text-base font-semibold text-stone-900">Inputs</h2>
+    <h2 class="text-lg font-semibold text-stone-900">Inputs</h2>
   </header>
 
   <ToolControls {toolState} />

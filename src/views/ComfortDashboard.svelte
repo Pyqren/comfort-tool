@@ -21,15 +21,15 @@
 </script>
 
 <main id="overview" class="bg-stone-50 px-4 py-4 sm:px-6 lg:px-8">
-  <div class="mx-auto max-w-7xl grid gap-4 xl:grid-cols-[25rem_1fr]">
+  <div class="mx-auto grid w-full max-w-7xl gap-4 xl:grid-cols-[25rem_minmax(0,1fr)]">
     <!-- Left Sidebar: Environmental and Personal Inputs -->
-    <aside id="inputs-panel" class="scroll-mt-32">
+    <aside id="inputs-panel" class="min-w-0 scroll-mt-32">
       <InputPanel {toolState} />
     </aside>
 
     <!-- Main Section: Results Table and Interactive Charts -->
-    <section class="grid gap-4">
-      <Card size="none" class="p-3 shadow-sm scroll-mt-32 border-stone-300">
+    <section class="grid min-w-0 gap-4">
+      <Card size="none" class="w-full min-w-0 border-stone-300 p-3 shadow-sm scroll-mt-32">
         <!-- Summary of calculation results -->
         <ResultsPanel
           activeInputId={toolState.state.ui.activeInputId}

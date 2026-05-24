@@ -292,7 +292,7 @@
         >
           {searchPlaceholder}
         </Heading>
-        <p class="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-semibold text-stone-600">
+        <p class="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-600">
           Current {formatValue(value)}
         </p>
       </div>
@@ -315,7 +315,7 @@
                 }}
               >
                 <span class="min-w-0 text-sm">{item.label}</span>
-                <span class="shrink-0 rounded-full bg-stone-900 px-2 py-0.5 text-[11px] font-semibold text-white">
+                <span class="shrink-0 rounded-full bg-stone-900 px-2 py-0.5 text-xs font-semibold text-white">
                   {formatValue(item.value)}
                 </span>
               </Button>
