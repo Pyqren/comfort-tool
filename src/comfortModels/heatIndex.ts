@@ -29,8 +29,9 @@ export const heatIndexZonesList = [
   new ThermalZone({ label: "Extreme Danger", min: 51, color: "#dc2626", textColor: "#b91c1c" }),
 ];
 // ── Constants ────────────────────────────────────────────────────────
-// Min temperature is set to 20 °C rather than the 26.7 °C (80 °F) Rothfusz caution threshold 
-// because jsthermalcomfort utilizes the simpler Steadman formula below 80 °F to supply safe, valid baseline results down to 20 °C.
+// Min temperature is set to 20 °C rather than the 26.7 °C (80 °F) Rothfusz caution threshold.
+// Since jsthermalcomfort returns NaN below this threshold by default, calculateHeatIndex falls 
+// back to the ambient dry bulb temperature to supply safe results down to 20 °C.
 const TDB_LIMITS = { min: 20, max: 50 };
 
 // ── Data Transfer Object (DTOs) ────────────────────────────────────────────────────────
